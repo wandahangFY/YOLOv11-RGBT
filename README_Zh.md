@@ -1,4 +1,4 @@
-# YOLO-MIF: Improved YOLOv8 with Multi-Information Fusion for Object Detection in Gray-Scale Images
+# YOLOv11-RGBT: Improved YOLOv11 with Multi-Information Fusion for Object Detection in Gray-Scale Images
 
 
 ## 简介
