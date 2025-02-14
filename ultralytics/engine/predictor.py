@@ -49,7 +49,7 @@ from ultralytics.utils import DEFAULT_CFG, LOGGER, MACOS, WINDOWS, callbacks, co
 from ultralytics.utils.checks import check_imgsz, check_imshow
 from ultralytics.utils.files import increment_path
 from ultralytics.utils.torch_utils import select_device, smart_inference_mode
-
+import os
 STREAM_WARNING = """
 WARNING ⚠️ inference results will accumulate in RAM unless `stream=True` is passed, causing potential out-of-memory
 errors for large sources or long-running streams and videos. See https://docs.ultralytics.com/modes/predict/ for help.
@@ -114,26 +114,66 @@ class BasePredictor:
         self.txt_path = None
         self._lock = threading.Lock()  # for automatic thread-safe inference
         callbacks.add_integration_callbacks(self)
+        self.channels = self.args.channels
 
+    # def preprocess(self, im):
+    #     """
+    #     Prepares input image before inference.
+    #
+    #     Args:
+    #         im (torch.Tensor | List(np.ndarray)): BCHW for tensor, [(HWC) x B] for list.
+    #     """
+    #     not_tensor = not isinstance(im, torch.Tensor)
+    #     if not_tensor:
+    #         im = np.stack(self.pre_transform(im))
+    #         im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+    #         im = np.ascontiguousarray(im)  # contiguous
+    #         im = torch.from_numpy(im)
+    #
+    #     im = im.to(self.device)
+    #     im = im.half() if self.model.fp16 else im.float()  # uint8 to fp16/32
+    #     if not_tensor:
+    #         im /= 255  # 0 - 255 to 0.0 - 1.0
+    #     return im
     def preprocess(self, im):
-        """
-        Prepares input image before inference.
+        """Prepares input image before inference.
 
         Args:
-            im (torch.Tensor | List(np.ndarray)): BCHW for tensor, [(HWC) x B] for list.
+            im (torch.Tensor | List(np.ndarray)): (N, 3, h, w) for tensor, [(h, w, 3) x N] for list.
         """
-        not_tensor = not isinstance(im, torch.Tensor)
-        if not_tensor:
+        if not isinstance(im, torch.Tensor):
             im = np.stack(self.pre_transform(im))
-            im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
-            im = np.ascontiguousarray(im)  # contiguous
+            # im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+            # im = np.ascontiguousarray(im)  # contiguous
+            if len(im.shape) < 4:
+                im = np.expand_dims(im, -1)
+            if (im.shape[3] == 1):
+                im = np.ascontiguousarray(im.transpose(0, 3, 1, 2))
+            elif (im.shape[3] == 3):
+                im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+                im = np.ascontiguousarray(im)  # contiguous
+            elif (im.shape[3] == 4):
+                # print("im.shape=", im.shape)
+                img3c = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, :3, :, :][:, ::-1, :, :])
+                img1c = im.transpose(0, 3, 1, 2)[:, -1:, :, :]
+                # print("img3c.shape=",img3c.shape)
+                # print("img1c.shape=", img1c.shape)
+
+                # img1c = np.expand_dims(img1c, 0)
+                im = np.concatenate((img3c, img1c), axis=1)
+            elif (im.shape[3] == 6):
+                img3c = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, :3, :, :][:, ::-1, :, :])
+                img3c2 = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, 3:, :, :][:, ::-1, :, :])
+                im = np.concatenate((img3c, img3c2), axis=1)
             im = torch.from_numpy(im)
 
-        im = im.to(self.device)
-        im = im.half() if self.model.fp16 else im.float()  # uint8 to fp16/32
-        if not_tensor:
-            im /= 255  # 0 - 255 to 0.0 - 1.0
-        return im
+        # NOTE: assuming im with (b, 3, h, w) if it's a tensor
+        img = im.to(self.device)
+        img = img.half() if self.model.fp16 else img.float()  # uint8 to fp16/32
+        img /= 255  # 0 - 255 to 0.0 - 1.0
+        return img
+
+    # 2025 01 05
 
     def inference(self, im, *args, **kwargs):
         """Runs inference on a given image using the specified model and arguments."""
@@ -207,6 +247,7 @@ class BasePredictor:
             batch=self.args.batch,
             vid_stride=self.args.vid_stride,
             buffer=self.args.stream_buffer,
+            use_simotm=self.args.use_simotm,
         )
         self.source_type = self.dataset.source_type
         if not getattr(self, "stream", True) and (
@@ -238,7 +279,8 @@ class BasePredictor:
 
             # Warmup model
             if not self.done_warmup:
-                self.model.warmup(imgsz=(1 if self.model.pt or self.model.triton else self.dataset.bs, 3, *self.imgsz))
+                # self.model.warmup(imgsz=(1 if self.model.pt or self.model.triton else self.dataset.bs, 3, *self.imgsz))
+                self.model.warmup(imgsz=(1 if self.model.pt or self.model.triton else self.dataset.bs, self.channels, *self.imgsz))
                 self.done_warmup = True
 
             self.seen, self.windows, self.batch = 0, [], None
@@ -348,6 +390,7 @@ class BasePredictor:
                 conf=self.args.show_conf,
                 labels=self.args.show_labels,
                 im_gpu=None if self.args.retina_masks else im[i],
+                use_simotm=self.args.use_simotm,  # 2025-01-05
             )
 
         # Save results
@@ -384,11 +427,13 @@ class BasePredictor:
             # Save video
             self.vid_writer[save_path].write(im)
             if self.args.save_frames:
-                cv2.imwrite(f"{frames_path}{frame}.jpg", im)
+                # cv2.imwrite(f"{frames_path}{frame}.jpg", im)
+                self.save_image_mutichannel(im, f"{frames_path}{frame}.jpg")
 
         # Save images
         else:
-            cv2.imwrite(str(Path(save_path).with_suffix(".jpg")), im)  # save to JPG for best support
+            # cv2.imwrite(str(Path(save_path).with_suffix(".jpg")), im)  # save to JPG for best support
+            self.save_image_mutichannel(im, str(Path(save_path).with_suffix(".jpg")))
 
     def show(self, p=""):
         """Display an image in a window using the OpenCV imshow function."""
@@ -408,3 +453,35 @@ class BasePredictor:
     def add_callback(self, event: str, func):
         """Add callback."""
         self.callbacks[event].append(func)
+
+
+    def save_image_mutichannel(self, im, save_path):
+        channels = im.shape[2]  # 获取通道数
+
+        # 获取文件扩展名，不区分大小写
+        file_extension = os.path.splitext(save_path)[1].lower()
+        # print(file_extension)
+        if channels == 3 or channels == 1:
+            cv2.imwrite(save_path, im)
+        elif channels == 6:
+            # 假设6通道的图像由2个RGB合并而来
+            # 分开RGB
+            im1 = im[:, :, :3]  # 第一部分RGB
+            im2 = im[:, :, 3:]  # 第二部分RGB
+
+            # 分别保存
+            cv2.imwrite(save_path.replace(file_extension, '_part1' + file_extension), im1)
+            cv2.imwrite(save_path.replace(file_extension, '_part2' + file_extension), im2)
+
+        elif channels == 4:
+            # 假设4通道的图像是RGB和灰度图
+            rgb = im[:, :, :3]  # RGB部分
+            gray = im[:, :, 3:]  # 灰度图部分
+
+            # 分别保存
+            cv2.imwrite(save_path.replace(file_extension, '_part1' + file_extension), rgb)
+            cv2.imwrite(save_path.replace(file_extension, '_part2' + file_extension), gray)
+
+        else:
+            # 处理其他情况或报错
+            raise ValueError("Unsupported number of channels")

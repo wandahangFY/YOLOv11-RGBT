@@ -72,7 +72,7 @@ from .conv import (
     Index,
     LightConv,
     RepConv,
-    SpatialAttention,
+    SpatialAttention,Silence,SilenceChannel,ChannelToNumber,NumberToChannel,
 )
 from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -159,5 +159,6 @@ __all__ = (
     "Attention",
     "PSA",
     "TorchVision",
-    "Index",
+    "Index", 'Silence','SilenceChannel','ChannelToNumber','NumberToChannel',
+
 )

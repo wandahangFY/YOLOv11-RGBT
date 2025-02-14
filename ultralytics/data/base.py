@@ -18,6 +18,52 @@ from ultralytics.data.utils import FORMATS_HELP_MSG, HELP_URL, IMG_FORMATS
 from ultralytics.utils import DEFAULT_CFG, LOCAL_RANK, LOGGER, NUM_THREADS, TQDM
 
 
+def receptiveField(img, R=3, r=1, fac_r=-1, fac_R=6):
+    # img1 = np.float32(img)
+
+    x, y = np.meshgrid(np.arange(1, R * 2 + 2), np.arange(1, R * 2 + 2))
+    dis = np.sqrt((x - (R + 1)) ** 2 + (y - (R + 1)) ** 2)
+    flag1 = (dis <= r)
+    flag2 = np.logical_and(dis > r, dis <= R)
+    kernal = flag1 * fac_r + flag2 * fac_R
+    # kernal /= kernal.sum()
+    kernal = kernal / kernal.sum()
+    out = cv2.filter2D(img, -1, kernal)
+    return out
+
+
+def SimOTM(img):
+    blur = cv2.blur(img, (3, 3))
+    rec = receptiveField(img)
+    result = cv2.merge([img, blur, rec])
+    return result
+
+def SimOTMBBS(img):
+    blur = cv2.blur(img, (3, 3))
+    result = cv2.merge([img, blur, blur])
+    return result
+
+def SimOTMSSS(img):
+    #  TIF  16 bit
+    result = cv2.merge([img, img, img])
+    return result
+
+def enhance_brightness_or_contrast(image, target_gray_value, brightness_alpha=1.5, contrast_alpha=1.0, beta=0):
+    gray_value = np.mean(image)
+    if gray_value >= target_gray_value:
+        enhanced_image = cv2.convertScaleAbs(image, alpha=contrast_alpha, beta=beta)
+    else:
+        avg_diff = target_gray_value - gray_value
+        enhanced_image = cv2.convertScaleAbs(image, alpha=1.0, beta=avg_diff)
+    return enhanced_image
+
+def SimOTMBrights(img):
+    blur = cv2.blur(img, (3, 3))
+    rec = receptiveField(img)
+    result = cv2.merge([img, blur, rec])
+    return result
+
+
 class BaseDataset(Dataset):
     """
     Base dataset class for loading and processing image data.
@@ -61,9 +107,11 @@ class BaseDataset(Dataset):
         single_cls=False,
         classes=None,
         fraction=1.0,
+            use_simotm="RGB"
     ):
         """Initialize BaseDataset with given configuration and options."""
         super().__init__()
+        self.use_simotm = use_simotm
         self.img_path = img_path
         self.imgsz = imgsz
         self.augment = augment
@@ -148,6 +196,44 @@ class BaseDataset(Dataset):
             if self.single_cls:
                 self.labels[i]["cls"][:, 0] = 0
 
+    # def load_image(self, i, rect_mode=True):
+    #     """Loads 1 image from dataset index 'i', returns (im, resized hw)."""
+    #     im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
+    #     if im is None:  # not cached in RAM
+    #         if fn.exists():  # load npy
+    #             try:
+    #                 im = np.load(fn)
+    #             except Exception as e:
+    #                 LOGGER.warning(f"{self.prefix}WARNING ⚠️ Removing corrupt *.npy image file {fn} due to: {e}")
+    #                 Path(fn).unlink(missing_ok=True)
+    #                 im = cv2.imread(f)  # BGR
+    #         else:  # read image
+    #             im = cv2.imread(f)  # BGR
+    #         if im is None:
+    #             raise FileNotFoundError(f"Image Not Found {f}")
+    #
+    #         h0, w0 = im.shape[:2]  # orig hw
+    #         if rect_mode:  # resize long side to imgsz while maintaining aspect ratio
+    #             r = self.imgsz / max(h0, w0)  # ratio
+    #             if r != 1:  # if sizes are not equal
+    #                 w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
+    #                 im = cv2.resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
+    #         elif not (h0 == w0 == self.imgsz):  # resize by stretching image to square imgsz
+    #             im = cv2.resize(im, (self.imgsz, self.imgsz), interpolation=cv2.INTER_LINEAR)
+    #
+    #         # Add to buffer if training with augmentations
+    #         if self.augment:
+    #             self.ims[i], self.im_hw0[i], self.im_hw[i] = im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
+    #             self.buffer.append(i)
+    #             if 1 < len(self.buffer) >= self.max_buffer_length:  # prevent empty buffer
+    #                 j = self.buffer.pop(0)
+    #                 if self.cache != "ram":
+    #                     self.ims[j], self.im_hw0[j], self.im_hw[j] = None, None, None
+    #
+    #         return im, (h0, w0), im.shape[:2]
+    #
+    #     return self.ims[i], self.im_hw0[i], self.im_hw[i]
+
     def load_image(self, i, rect_mode=True):
         """Loads 1 image from dataset index 'i', returns (im, resized hw)."""
         im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
@@ -160,7 +246,80 @@ class BaseDataset(Dataset):
                     Path(fn).unlink(missing_ok=True)
                     im = cv2.imread(f)  # BGR
             else:  # read image
-                im = cv2.imread(f)  # BGR
+                # im = cv2.imread(f)  # BGR
+                if self.use_simotm ==  'Gray2BGR':
+                    im = cv2.imread(f)  # BGR
+                elif self.use_simotm == 'SimOTM':
+                    im = cv2.imread(f, cv2.IMREAD_GRAYSCALE)  # GRAY
+                    im = SimOTM(im)
+                elif self.use_simotm == 'SimOTMBBS':
+                    im = cv2.imread(f, cv2.IMREAD_GRAYSCALE)  # GRAY
+                    im = SimOTMBBS(im)
+                elif self.use_simotm == 'Gray':
+                    im = cv2.imread(f, cv2.IMREAD_GRAYSCALE)  # GRAY
+                elif self.use_simotm == 'Gray16bit':
+                    im = cv2.imread(f, cv2.IMREAD_UNCHANGED)  # GRAY
+                    im = im.astype(np.float32)
+                elif self.use_simotm == 'SimOTMSSS':
+                    im = cv2.imread(f, cv2.IMREAD_UNCHANGED)  # TIF 16bit
+                    im=im.astype(np.float32)
+                    im = SimOTMSSS(im)
+                elif self.use_simotm == 'RGBT':
+                    im_visible = cv2.imread(f)  # BGR
+                    im_infrared = cv2.imread(f.replace('visible', 'infrared'), cv2.IMREAD_GRAYSCALE)  # BGR
+                    if im_visible is None or im_infrared is None:
+                        raise FileNotFoundError(f"Image Not Found {f}")
+                    h_vis, w_vis = im_visible.shape[:2]  # orig hw
+                    h_inf, w_inf = im_infrared.shape[:2]  # orig hw
+
+                    if h_vis!=h_inf or w_vis!=w_inf:
+
+                        r_vis = self.imgsz / max(h_vis, w_vis)  # ratio
+                        r_inf = self.imgsz / max( h_inf, w_inf )  # ratio
+                        if r_vis != 1:  # if sizes are not equal
+                            interp = cv2.INTER_LINEAR if (self.augment or r_vis > 1) else cv2.INTER_AREA
+                            im_visible = cv2.resize(im_visible, (min(math.ceil(w_vis * r_vis), self.imgsz), min(math.ceil(h_vis * r_vis), self.imgsz)),
+                                            interpolation=interp)
+                        if r_inf != 1:  # if sizes are not equal
+                            interp = cv2.INTER_LINEAR if (self.augment or r_inf > 1) else cv2.INTER_AREA
+                            im_infrared = cv2.resize(im_infrared, (
+                            min(math.ceil(w_inf * r_inf), self.imgsz), min(math.ceil(h_inf * r_inf), self.imgsz)),
+                                                    interpolation=interp)
+
+                    # 将彩色图像的三个通道分离
+                    b, g, r = cv2.split(im_visible)
+                    # 合并成四通道图像
+                    im = cv2.merge((b, g, r, im_infrared))
+                elif self.use_simotm == 'RGBRGB6C':
+                    im_visible = cv2.imread(f)  # BGR
+                    im_infrared = cv2.imread(f.replace('visible', 'infrared'))  # BGR
+                    if im_visible is None or im_infrared is None:
+                        raise FileNotFoundError(f"Image Not Found {f}")
+                    h_vis, w_vis = im_visible.shape[:2]  # orig hw
+                    h_inf, w_inf = im_infrared.shape[:2]  # orig hw
+
+                    if h_vis != h_inf or w_vis != w_inf:
+
+                        r_vis = self.imgsz / max(h_vis, w_vis)  # ratio
+                        r_inf = self.imgsz / max(h_inf, w_inf)  # ratio
+                        if r_vis != 1:  # if sizes are not equal
+                            interp = cv2.INTER_LINEAR if (self.augment or r_vis > 1) else cv2.INTER_AREA
+                            im_visible = cv2.resize(im_visible, (
+                            min(math.ceil(w_vis * r_vis), self.imgsz), min(math.ceil(h_vis * r_vis), self.imgsz)),
+                                                    interpolation=interp)
+                        if r_inf != 1:  # if sizes are not equal
+                            interp = cv2.INTER_LINEAR if (self.augment or r_inf > 1) else cv2.INTER_AREA
+                            im_infrared = cv2.resize(im_infrared, (
+                                min(math.ceil(w_inf * r_inf), self.imgsz), min(math.ceil(h_inf * r_inf), self.imgsz)),
+                                                     interpolation=interp)
+
+                    # 将彩色图像的三个通道分离
+                    b, g, r = cv2.split(im_visible)
+                    b2, g2, r2 = cv2.split(im_infrared)
+                    # 合并成6通道图像
+                    im = cv2.merge((b, g, r, b2, g2, r2))
+                else:
+                    im = cv2.imread(f)  # BGR
             if im is None:
                 raise FileNotFoundError(f"Image Not Found {f}")
 

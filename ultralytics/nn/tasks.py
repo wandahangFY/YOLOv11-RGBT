@@ -50,7 +50,7 @@ from ultralytics.nn.modules import (
     HGBlock,
     HGStem,
     ImagePoolingAttn,
-    Index,
+    Index,Silence,SilenceChannel,ChannelToNumber,NumberToChannel,
     Pose,
     RepC3,
     RepConv,
@@ -1062,6 +1062,12 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = args[0]
             c1 = ch[f]
             args = [*args[1:]]
+        elif m is SilenceChannel:
+            c2 = args[1] - args[0]
+        elif m is NumberToChannel:
+            c2 = ch[f] * 2
+        elif m is ChannelToNumber:
+            c2 = 3
         else:
             c2 = ch[f]
 

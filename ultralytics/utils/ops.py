@@ -374,14 +374,54 @@ def clip_coords(coords, shape):
     return coords
 
 
+def ensure_channels(masks):
+    """
+    Ensure the mask has 3 channels or 6 channels.
+    If masks have a single channel (grayscale), it will be repeated to 3 channels.
+    If masks have 4 channels (RGBA), it will be repeated to 6 channels.
+    Args:
+        masks (np.array): Input mask array, shape can be (batch_size, h, w, c) or (h, w, c)
+    Returns:
+        np.array: Processed mask with 3 or 6 channels
+    """
+    print("ensure_channels masks.shape=",masks.shape)
+    # Check if the input masks have 4D shape (batch_size, h, w, c) or 3D shape (h, w, c)
+    if len(masks.shape) == 4:
+        # If it's 4D, check the batch dimension and process each mask in the batch
+        batch_size = masks.shape[0]
+        for i in range(batch_size):
+            masks[i] = process_mask_ensure(masks[i])
+    elif len(masks.shape) == 3:
+        # If it's 3D, process the single mask
+        masks = process_mask_ensure(masks)
+    else:
+        raise ValueError(f"Unexpected input shape: {masks.shape}")
+
+    return masks
+
+def process_mask_ensure(mask):
+    """
+    Process a single mask (2D or 3D) to ensure it has 3 or 6 channels.
+    """
+    # If the mask has only 1 channel, repeat it to 3 channels (grayscale to RGB)
+    if mask.shape[-1] == 1:
+        mask = np.repeat(mask, 3, axis=-1)  # Convert single-channel to 3-channel
+    # If the mask has 4 channels (RGBA), repeat it to 6 channels
+    elif mask.shape[-1] == 4:
+        mask = np.repeat(mask, 2, axis=-1)  # Convert 4-channel (RGBA) to 6-channel
+    # Ensure the mask has 3 or 6 channels
+    elif mask.shape[-1] not in [3, 6]:
+        raise ValueError(f"Unexpected number of channels: {mask.shape[-1]}")
+    return mask
+
 def scale_image(masks, im0_shape, ratio_pad=None):
     """
     Takes a mask, and resizes it to the original image size.
 
     Args:
-        masks (np.ndarray): Resized and padded masks/images, [h, w, num]/[h, w, 3].
-        im0_shape (tuple): The original image shape.
-        ratio_pad (tuple): The ratio of the padding to the original image.
+        masks (np.ndarray): resized and padded masks/images, [h, w, num]/[h, w, 3].
+        im0_shape (tuple): the original image shape
+        ratio_pad (tuple): the ratio of the padding to the original image.
 
     Returns:
         masks (np.ndarray): The masks that are being returned with shape [h, w, num].
@@ -402,11 +442,51 @@ def scale_image(masks, im0_shape, ratio_pad=None):
     if len(masks.shape) < 2:
         raise ValueError(f'"len of masks shape" should be 2 or 3, but got {len(masks.shape)}')
     masks = masks[top:bottom, left:right]
+    # print(masks.shape)
+    # Ensure the mask has 3 channels or 6 channels
+    masks = ensure_channels(masks)  # This will ensure masks have either 3 or 6 channels
+    # print("masks.shape=",masks.shape)
     masks = cv2.resize(masks, (im0_shape[1], im0_shape[0]))
     if len(masks.shape) == 2:
         masks = masks[:, :, None]
 
     return masks
+
+
+
+# def scale_image(masks, im0_shape, ratio_pad=None):
+#     """
+#     Takes a mask, and resizes it to the original image size.
+#
+#     Args:
+#         masks (np.ndarray): Resized and padded masks/images, [h, w, num]/[h, w, 3].
+#         im0_shape (tuple): The original image shape.
+#         ratio_pad (tuple): The ratio of the padding to the original image.
+#
+#     Returns:
+#         masks (np.ndarray): The masks that are being returned with shape [h, w, num].
+#     """
+#     # Rescale coordinates (xyxy) from im1_shape to im0_shape
+#     im1_shape = masks.shape
+#     if im1_shape[:2] == im0_shape[:2]:
+#         return masks
+#     if ratio_pad is None:  # calculate from im0_shape
+#         gain = min(im1_shape[0] / im0_shape[0], im1_shape[1] / im0_shape[1])  # gain  = old / new
+#         pad = (im1_shape[1] - im0_shape[1] * gain) / 2, (im1_shape[0] - im0_shape[0] * gain) / 2  # wh padding
+#     else:
+#         # gain = ratio_pad[0][0]
+#         pad = ratio_pad[1]
+#     top, left = int(pad[1]), int(pad[0])  # y, x
+#     bottom, right = int(im1_shape[0] - pad[1]), int(im1_shape[1] - pad[0])
+#
+#     if len(masks.shape) < 2:
+#         raise ValueError(f'"len of masks shape" should be 2 or 3, but got {len(masks.shape)}')
+#     masks = masks[top:bottom, left:right]
+#     masks = cv2.resize(masks, (im0_shape[1], im0_shape[0]))
+#     if len(masks.shape) == 2:
+#         masks = masks[:, :, None]
+#
+#     return masks
 
 
 def xyxy2xywh(x):

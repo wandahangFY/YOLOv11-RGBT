@@ -465,6 +465,7 @@ class Results(SimpleClass):
         save=False,
         filename=None,
         color_mode="class",
+        use_simotm="RGBT",
     ):
         """
         Plots detection results on an input RGB image.
@@ -512,7 +513,7 @@ class Results(SimpleClass):
             font_size,
             font,
             pil or (pred_probs is not None and show_probs),  # Classify tasks default to pil=True
-            example=names,
+            example=names,use_simotm=use_simotm, # 2025-01-05
         )
 
         # Plot Segment results
