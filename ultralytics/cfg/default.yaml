@@ -126,3 +126,8 @@ cfg: # (str, optional) for overriding defaults.yaml
 
 # Tracker settings ------------------------------------------------------------------------------------------------------
 tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yaml]
+
+
+channels: 1 # (int) channels of model
+use_simotm: SimOTMBBS # (str) Pretreatment method
+brightness: 0.2 # (float) image brightness (probability)

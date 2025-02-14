@@ -150,6 +150,755 @@ class Colors:
 colors = Colors()  # create instance for 'from utils.plots import colors'
 
 
+# class Annotator:
+#     """
+#     Ultralytics Annotator for train/val mosaics and JPGs and predictions annotations.
+#
+#     Attributes:
+#         im (Image.Image or numpy array): The image to annotate.
+#         pil (bool): Whether to use PIL or cv2 for drawing annotations.
+#         font (ImageFont.truetype or ImageFont.load_default): Font used for text annotations.
+#         lw (float): Line width for drawing.
+#         skeleton (List[List[int]]): Skeleton structure for keypoints.
+#         limb_color (List[int]): Color palette for limbs.
+#         kpt_color (List[int]): Color palette for keypoints.
+#     """
+#
+#     def __init__(self, im, line_width=None, font_size=None, font="Arial.ttf", pil=False, example="abc"):
+#         """Initialize the Annotator class with image and line width along with color palette for keypoints and limbs."""
+#         non_ascii = not is_ascii(example)  # non-latin labels, i.e. asian, arabic, cyrillic
+#         input_is_pil = isinstance(im, Image.Image)
+#         self.pil = pil or non_ascii or input_is_pil
+#         self.lw = line_width or max(round(sum(im.size if input_is_pil else im.shape) / 2 * 0.003), 2)
+#         if self.pil:  # use PIL
+#             self.im = im if input_is_pil else Image.fromarray(im)
+#             self.draw = ImageDraw.Draw(self.im)
+#             try:
+#                 font = check_font("Arial.Unicode.ttf" if non_ascii else font)
+#                 size = font_size or max(round(sum(self.im.size) / 2 * 0.035), 12)
+#                 self.font = ImageFont.truetype(str(font), size)
+#             except Exception:
+#                 self.font = ImageFont.load_default()
+#             # Deprecation fix for w, h = getsize(string) -> _, _, w, h = getbox(string)
+#             if check_version(pil_version, "9.2.0"):
+#                 self.font.getsize = lambda x: self.font.getbbox(x)[2:4]  # text width, height
+#         else:  # use cv2
+#             assert im.data.contiguous, "Image not contiguous. Apply np.ascontiguousarray(im) to Annotator input images."
+#             self.im = im if im.flags.writeable else im.copy()
+#             self.tf = max(self.lw - 1, 1)  # font thickness
+#             self.sf = self.lw / 3  # font scale
+#         # Pose
+#         self.skeleton = [
+#             [16, 14],
+#             [14, 12],
+#             [17, 15],
+#             [15, 13],
+#             [12, 13],
+#             [6, 12],
+#             [7, 13],
+#             [6, 7],
+#             [6, 8],
+#             [7, 9],
+#             [8, 10],
+#             [9, 11],
+#             [2, 3],
+#             [1, 2],
+#             [1, 3],
+#             [2, 4],
+#             [3, 5],
+#             [4, 6],
+#             [5, 7],
+#         ]
+#
+#         self.limb_color = colors.pose_palette[[9, 9, 9, 9, 7, 7, 7, 0, 0, 0, 0, 0, 16, 16, 16, 16, 16, 16, 16]]
+#         self.kpt_color = colors.pose_palette[[16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 9, 9, 9, 9, 9, 9]]
+#         self.dark_colors = {
+#             (235, 219, 11),
+#             (243, 243, 243),
+#             (183, 223, 0),
+#             (221, 111, 255),
+#             (0, 237, 204),
+#             (68, 243, 0),
+#             (255, 255, 0),
+#             (179, 255, 1),
+#             (11, 255, 162),
+#         }
+#         self.light_colors = {
+#             (255, 42, 4),
+#             (79, 68, 255),
+#             (255, 0, 189),
+#             (255, 180, 0),
+#             (186, 0, 221),
+#             (0, 192, 38),
+#             (255, 36, 125),
+#             (104, 0, 123),
+#             (108, 27, 255),
+#             (47, 109, 252),
+#             (104, 31, 17),
+#         }
+#
+#     def get_txt_color(self, color=(128, 128, 128), txt_color=(255, 255, 255)):
+#         """
+#         Assign text color based on background color.
+#
+#         Args:
+#             color (tuple, optional): The background color of the rectangle for text (B, G, R).
+#             txt_color (tuple, optional): The color of the text (R, G, B).
+#
+#         Returns:
+#             txt_color (tuple): Text color for label
+#         """
+#         if color in self.dark_colors:
+#             return 104, 31, 17
+#         elif color in self.light_colors:
+#             return 255, 255, 255
+#         else:
+#             return txt_color
+#
+#     def circle_label(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), margin=2):
+#         """
+#         Draws a label with a background circle centered within a given bounding box.
+#
+#         Args:
+#             box (tuple): The bounding box coordinates (x1, y1, x2, y2).
+#             label (str): The text label to be displayed.
+#             color (tuple, optional): The background color of the rectangle (B, G, R).
+#             txt_color (tuple, optional): The color of the text (R, G, B).
+#             margin (int, optional): The margin between the text and the rectangle border.
+#         """
+#         # If label have more than 3 characters, skip other characters, due to circle size
+#         if len(label) > 3:
+#             print(
+#                 f"Length of label is {len(label)}, initial 3 label characters will be considered for circle annotation!"
+#             )
+#             label = label[:3]
+#
+#         # Calculate the center of the box
+#         x_center, y_center = int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)
+#         # Get the text size
+#         text_size = cv2.getTextSize(str(label), cv2.FONT_HERSHEY_SIMPLEX, self.sf - 0.15, self.tf)[0]
+#         # Calculate the required radius to fit the text with the margin
+#         required_radius = int(((text_size[0] ** 2 + text_size[1] ** 2) ** 0.5) / 2) + margin
+#         # Draw the circle with the required radius
+#         cv2.circle(self.im, (x_center, y_center), required_radius, color, -1)
+#         # Calculate the position for the text
+#         text_x = x_center - text_size[0] // 2
+#         text_y = y_center + text_size[1] // 2
+#         # Draw the text
+#         cv2.putText(
+#             self.im,
+#             str(label),
+#             (text_x, text_y),
+#             cv2.FONT_HERSHEY_SIMPLEX,
+#             self.sf - 0.15,
+#             self.get_txt_color(color, txt_color),
+#             self.tf,
+#             lineType=cv2.LINE_AA,
+#         )
+#
+#     def text_label(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), margin=5):
+#         """
+#         Draws a label with a background rectangle centered within a given bounding box.
+#
+#         Args:
+#             box (tuple): The bounding box coordinates (x1, y1, x2, y2).
+#             label (str): The text label to be displayed.
+#             color (tuple, optional): The background color of the rectangle (B, G, R).
+#             txt_color (tuple, optional): The color of the text (R, G, B).
+#             margin (int, optional): The margin between the text and the rectangle border.
+#         """
+#         # Calculate the center of the bounding box
+#         x_center, y_center = int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)
+#         # Get the size of the text
+#         text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, self.sf - 0.1, self.tf)[0]
+#         # Calculate the top-left corner of the text (to center it)
+#         text_x = x_center - text_size[0] // 2
+#         text_y = y_center + text_size[1] // 2
+#         # Calculate the coordinates of the background rectangle
+#         rect_x1 = text_x - margin
+#         rect_y1 = text_y - text_size[1] - margin
+#         rect_x2 = text_x + text_size[0] + margin
+#         rect_y2 = text_y + margin
+#         # Draw the background rectangle
+#         cv2.rectangle(self.im, (rect_x1, rect_y1), (rect_x2, rect_y2), color, -1)
+#         # Draw the text on top of the rectangle
+#         cv2.putText(
+#             self.im,
+#             label,
+#             (text_x, text_y),
+#             cv2.FONT_HERSHEY_SIMPLEX,
+#             self.sf - 0.1,
+#             self.get_txt_color(color, txt_color),
+#             self.tf,
+#             lineType=cv2.LINE_AA,
+#         )
+#
+#     def box_label(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), rotated=False):
+#         """
+#         Draws a bounding box to image with label.
+#
+#         Args:
+#             box (tuple): The bounding box coordinates (x1, y1, x2, y2).
+#             label (str): The text label to be displayed.
+#             color (tuple, optional): The background color of the rectangle (B, G, R).
+#             txt_color (tuple, optional): The color of the text (R, G, B).
+#             rotated (bool, optional): Variable used to check if task is OBB
+#         """
+#         txt_color = self.get_txt_color(color, txt_color)
+#         if isinstance(box, torch.Tensor):
+#             box = box.tolist()
+#         if self.pil or not is_ascii(label):
+#             if rotated:
+#                 p1 = box[0]
+#                 self.draw.polygon([tuple(b) for b in box], width=self.lw, outline=color)  # PIL requires tuple box
+#             else:
+#                 p1 = (box[0], box[1])
+#                 self.draw.rectangle(box, width=self.lw, outline=color)  # box
+#             if label:
+#                 w, h = self.font.getsize(label)  # text width, height
+#                 outside = p1[1] >= h  # label fits outside box
+#                 if p1[0] > self.im.size[0] - w:  # size is (w, h), check if label extend beyond right side of image
+#                     p1 = self.im.size[0] - w, p1[1]
+#                 self.draw.rectangle(
+#                     (p1[0], p1[1] - h if outside else p1[1], p1[0] + w + 1, p1[1] + 1 if outside else p1[1] + h + 1),
+#                     fill=color,
+#                 )
+#                 # self.draw.text((box[0], box[1]), label, fill=txt_color, font=self.font, anchor='ls')  # for PIL>8.0
+#                 self.draw.text((p1[0], p1[1] - h if outside else p1[1]), label, fill=txt_color, font=self.font)
+#         else:  # cv2
+#             if rotated:
+#                 p1 = [int(b) for b in box[0]]
+#                 cv2.polylines(self.im, [np.asarray(box, dtype=int)], True, color, self.lw)  # cv2 requires nparray box
+#             else:
+#                 p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+#                 cv2.rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
+#             if label:
+#                 w, h = cv2.getTextSize(label, 0, fontScale=self.sf, thickness=self.tf)[0]  # text width, height
+#                 h += 3  # add pixels to pad text
+#                 outside = p1[1] >= h  # label fits outside box
+#                 if p1[0] > self.im.shape[1] - w:  # shape is (h, w), check if label extend beyond right side of image
+#                     p1 = self.im.shape[1] - w, p1[1]
+#                 p2 = p1[0] + w, p1[1] - h if outside else p1[1] + h
+#                 cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled
+#                 cv2.putText(
+#                     self.im,
+#                     label,
+#                     (p1[0], p1[1] - 2 if outside else p1[1] + h - 1),
+#                     0,
+#                     self.sf,
+#                     txt_color,
+#                     thickness=self.tf,
+#                     lineType=cv2.LINE_AA,
+#                 )
+#
+#     def masks(self, masks, colors, im_gpu, alpha=0.5, retina_masks=False):
+#         """
+#         Plot masks on image.
+#
+#         Args:
+#             masks (tensor): Predicted masks on cuda, shape: [n, h, w]
+#             colors (List[List[Int]]): Colors for predicted masks, [[r, g, b] * n]
+#             im_gpu (tensor): Image is in cuda, shape: [3, h, w], range: [0, 1]
+#             alpha (float): Mask transparency: 0.0 fully transparent, 1.0 opaque
+#             retina_masks (bool): Whether to use high resolution masks or not. Defaults to False.
+#         """
+#         if self.pil:
+#             # Convert to numpy first
+#             self.im = np.asarray(self.im).copy()
+#         if len(masks) == 0:
+#             self.im[:] = im_gpu.permute(1, 2, 0).contiguous().cpu().numpy() * 255
+#         if im_gpu.device != masks.device:
+#             im_gpu = im_gpu.to(masks.device)
+#         colors = torch.tensor(colors, device=masks.device, dtype=torch.float32) / 255.0  # shape(n,3)
+#         colors = colors[:, None, None]  # shape(n,1,1,3)
+#         masks = masks.unsqueeze(3)  # shape(n,h,w,1)
+#         masks_color = masks * (colors * alpha)  # shape(n,h,w,3)
+#
+#         inv_alpha_masks = (1 - masks * alpha).cumprod(0)  # shape(n,h,w,1)
+#         mcs = masks_color.max(dim=0).values  # shape(n,h,w,3)
+#
+#         im_gpu = im_gpu.flip(dims=[0])  # flip channel
+#         im_gpu = im_gpu.permute(1, 2, 0).contiguous()  # shape(h,w,3)
+#         im_gpu = im_gpu * inv_alpha_masks[-1] + mcs
+#         im_mask = im_gpu * 255
+#         im_mask_np = im_mask.byte().cpu().numpy()
+#         self.im[:] = im_mask_np if retina_masks else ops.scale_image(im_mask_np, self.im.shape)
+#         if self.pil:
+#             # Convert im back to PIL and update draw
+#             self.fromarray(self.im)
+#
+#     def kpts(self, kpts, shape=(640, 640), radius=None, kpt_line=True, conf_thres=0.25, kpt_color=None):
+#         """
+#         Plot keypoints on the image.
+#
+#         Args:
+#             kpts (torch.Tensor): Keypoints, shape [17, 3] (x, y, confidence).
+#             shape (tuple, optional): Image shape (h, w). Defaults to (640, 640).
+#             radius (int, optional): Keypoint radius. Defaults to 5.
+#             kpt_line (bool, optional): Draw lines between keypoints. Defaults to True.
+#             conf_thres (float, optional): Confidence threshold. Defaults to 0.25.
+#             kpt_color (tuple, optional): Keypoint color (B, G, R). Defaults to None.
+#
+#         Note:
+#             - `kpt_line=True` currently only supports human pose plotting.
+#             - Modifies self.im in-place.
+#             - If self.pil is True, converts image to numpy array and back to PIL.
+#         """
+#         radius = radius if radius is not None else self.lw
+#         if self.pil:
+#             # Convert to numpy first
+#             self.im = np.asarray(self.im).copy()
+#         nkpt, ndim = kpts.shape
+#         is_pose = nkpt == 17 and ndim in {2, 3}
+#         kpt_line &= is_pose  # `kpt_line=True` for now only supports human pose plotting
+#         for i, k in enumerate(kpts):
+#             color_k = kpt_color or (self.kpt_color[i].tolist() if is_pose else colors(i))
+#             x_coord, y_coord = k[0], k[1]
+#             if x_coord % shape[1] != 0 and y_coord % shape[0] != 0:
+#                 if len(k) == 3:
+#                     conf = k[2]
+#                     if conf < conf_thres:
+#                         continue
+#                 cv2.circle(self.im, (int(x_coord), int(y_coord)), radius, color_k, -1, lineType=cv2.LINE_AA)
+#
+#         if kpt_line:
+#             ndim = kpts.shape[-1]
+#             for i, sk in enumerate(self.skeleton):
+#                 pos1 = (int(kpts[(sk[0] - 1), 0]), int(kpts[(sk[0] - 1), 1]))
+#                 pos2 = (int(kpts[(sk[1] - 1), 0]), int(kpts[(sk[1] - 1), 1]))
+#                 if ndim == 3:
+#                     conf1 = kpts[(sk[0] - 1), 2]
+#                     conf2 = kpts[(sk[1] - 1), 2]
+#                     if conf1 < conf_thres or conf2 < conf_thres:
+#                         continue
+#                 if pos1[0] % shape[1] == 0 or pos1[1] % shape[0] == 0 or pos1[0] < 0 or pos1[1] < 0:
+#                     continue
+#                 if pos2[0] % shape[1] == 0 or pos2[1] % shape[0] == 0 or pos2[0] < 0 or pos2[1] < 0:
+#                     continue
+#                 cv2.line(
+#                     self.im,
+#                     pos1,
+#                     pos2,
+#                     kpt_color or self.limb_color[i].tolist(),
+#                     thickness=int(np.ceil(self.lw / 2)),
+#                     lineType=cv2.LINE_AA,
+#                 )
+#         if self.pil:
+#             # Convert im back to PIL and update draw
+#             self.fromarray(self.im)
+#
+#     def rectangle(self, xy, fill=None, outline=None, width=1):
+#         """Add rectangle to image (PIL-only)."""
+#         self.draw.rectangle(xy, fill, outline, width)
+#
+#     def text(self, xy, text, txt_color=(255, 255, 255), anchor="top", box_style=False):
+#         """Adds text to an image using PIL or cv2."""
+#         if anchor == "bottom":  # start y from font bottom
+#             w, h = self.font.getsize(text)  # text width, height
+#             xy[1] += 1 - h
+#         if self.pil:
+#             if box_style:
+#                 w, h = self.font.getsize(text)
+#                 self.draw.rectangle((xy[0], xy[1], xy[0] + w + 1, xy[1] + h + 1), fill=txt_color)
+#                 # Using `txt_color` for background and draw fg with white color
+#                 txt_color = (255, 255, 255)
+#             if "\n" in text:
+#                 lines = text.split("\n")
+#                 _, h = self.font.getsize(text)
+#                 for line in lines:
+#                     self.draw.text(xy, line, fill=txt_color, font=self.font)
+#                     xy[1] += h
+#             else:
+#                 self.draw.text(xy, text, fill=txt_color, font=self.font)
+#         else:
+#             if box_style:
+#                 w, h = cv2.getTextSize(text, 0, fontScale=self.sf, thickness=self.tf)[0]  # text width, height
+#                 h += 3  # add pixels to pad text
+#                 outside = xy[1] >= h  # label fits outside box
+#                 p2 = xy[0] + w, xy[1] - h if outside else xy[1] + h
+#                 cv2.rectangle(self.im, xy, p2, txt_color, -1, cv2.LINE_AA)  # filled
+#                 # Using `txt_color` for background and draw fg with white color
+#                 txt_color = (255, 255, 255)
+#             cv2.putText(self.im, text, xy, 0, self.sf, txt_color, thickness=self.tf, lineType=cv2.LINE_AA)
+#
+#     def fromarray(self, im):
+#         """Update self.im from a numpy array."""
+#         self.im = im if isinstance(im, Image.Image) else Image.fromarray(im)
+#         self.draw = ImageDraw.Draw(self.im)
+#
+#     def result(self):
+#         """Return annotated image as array."""
+#         return np.asarray(self.im)
+#
+#     def show(self, title=None):
+#         """Show the annotated image."""
+#         im = Image.fromarray(np.asarray(self.im)[..., ::-1])  # Convert numpy array to PIL Image with RGB to BGR
+#         if IS_COLAB or IS_KAGGLE:  # can not use IS_JUPYTER as will run for all ipython environments
+#             try:
+#                 display(im)  # noqa - display() function only available in ipython environments
+#             except ImportError as e:
+#                 LOGGER.warning(f"Unable to display image in Jupyter notebooks: {e}")
+#         else:
+#             im.show(title=title)
+#
+#     def save(self, filename="image.jpg"):
+#         """Save the annotated image to 'filename'."""
+#         cv2.imwrite(filename, np.asarray(self.im))
+#
+#     @staticmethod
+#     def get_bbox_dimension(bbox=None):
+#         """
+#         Calculate the area of a bounding box.
+#
+#         Args:
+#             bbox (tuple): Bounding box coordinates in the format (x_min, y_min, x_max, y_max).
+#
+#         Returns:
+#             width (float): Width of the bounding box.
+#             height (float): Height of the bounding box.
+#             area (float): Area enclosed by the bounding box.
+#         """
+#         x_min, y_min, x_max, y_max = bbox
+#         width = x_max - x_min
+#         height = y_max - y_min
+#         return width, height, width * height
+#
+#     def draw_region(self, reg_pts=None, color=(0, 255, 0), thickness=5):
+#         """
+#         Draw region line.
+#
+#         Args:
+#             reg_pts (list): Region Points (for line 2 points, for region 4 points)
+#             color (tuple): Region Color value
+#             thickness (int): Region area thickness value
+#         """
+#         cv2.polylines(self.im, [np.array(reg_pts, dtype=np.int32)], isClosed=True, color=color, thickness=thickness)
+#
+#         # Draw small circles at the corner points
+#         for point in reg_pts:
+#             cv2.circle(self.im, (point[0], point[1]), thickness * 2, color, -1)  # -1 fills the circle
+#
+#     def draw_centroid_and_tracks(self, track, color=(255, 0, 255), track_thickness=2):
+#         """
+#         Draw centroid point and track trails.
+#
+#         Args:
+#             track (list): object tracking points for trails display
+#             color (tuple): tracks line color
+#             track_thickness (int): track line thickness value
+#         """
+#         points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
+#         cv2.polylines(self.im, [points], isClosed=False, color=color, thickness=track_thickness)
+#         cv2.circle(self.im, (int(track[-1][0]), int(track[-1][1])), track_thickness * 2, color, -1)
+#
+#     def queue_counts_display(self, label, points=None, region_color=(255, 255, 255), txt_color=(0, 0, 0)):
+#         """
+#         Displays queue counts on an image centered at the points with customizable font size and colors.
+#
+#         Args:
+#             label (str): Queue counts label.
+#             points (tuple): Region points for center point calculation to display text.
+#             region_color (tuple): RGB queue region color.
+#             txt_color (tuple): RGB text display color.
+#         """
+#         x_values = [point[0] for point in points]
+#         y_values = [point[1] for point in points]
+#         center_x = sum(x_values) // len(points)
+#         center_y = sum(y_values) // len(points)
+#
+#         text_size = cv2.getTextSize(label, 0, fontScale=self.sf, thickness=self.tf)[0]
+#         text_width = text_size[0]
+#         text_height = text_size[1]
+#
+#         rect_width = text_width + 20
+#         rect_height = text_height + 20
+#         rect_top_left = (center_x - rect_width // 2, center_y - rect_height // 2)
+#         rect_bottom_right = (center_x + rect_width // 2, center_y + rect_height // 2)
+#         cv2.rectangle(self.im, rect_top_left, rect_bottom_right, region_color, -1)
+#
+#         text_x = center_x - text_width // 2
+#         text_y = center_y + text_height // 2
+#
+#         # Draw text
+#         cv2.putText(
+#             self.im,
+#             label,
+#             (text_x, text_y),
+#             0,
+#             fontScale=self.sf,
+#             color=txt_color,
+#             thickness=self.tf,
+#             lineType=cv2.LINE_AA,
+#         )
+#
+#     def display_objects_labels(self, im0, text, txt_color, bg_color, x_center, y_center, margin):
+#         """
+#         Display the bounding boxes labels in parking management app.
+#
+#         Args:
+#             im0 (ndarray): Inference image.
+#             text (str): Object/class name.
+#             txt_color (tuple): Display color for text foreground.
+#             bg_color (tuple): Display color for text background.
+#             x_center (float): The x position center point for bounding box.
+#             y_center (float): The y position center point for bounding box.
+#             margin (int): The gap between text and rectangle for better display.
+#         """
+#         text_size = cv2.getTextSize(text, 0, fontScale=self.sf, thickness=self.tf)[0]
+#         text_x = x_center - text_size[0] // 2
+#         text_y = y_center + text_size[1] // 2
+#
+#         rect_x1 = text_x - margin
+#         rect_y1 = text_y - text_size[1] - margin
+#         rect_x2 = text_x + text_size[0] + margin
+#         rect_y2 = text_y + margin
+#         cv2.rectangle(im0, (rect_x1, rect_y1), (rect_x2, rect_y2), bg_color, -1)
+#         cv2.putText(im0, text, (text_x, text_y), 0, self.sf, txt_color, self.tf, lineType=cv2.LINE_AA)
+#
+#     def display_analytics(self, im0, text, txt_color, bg_color, margin):
+#         """
+#         Display the overall statistics for parking lots.
+#
+#         Args:
+#             im0 (ndarray): Inference image.
+#             text (dict): Labels dictionary.
+#             txt_color (tuple): Display color for text foreground.
+#             bg_color (tuple): Display color for text background.
+#             margin (int): Gap between text and rectangle for better display.
+#         """
+#         horizontal_gap = int(im0.shape[1] * 0.02)
+#         vertical_gap = int(im0.shape[0] * 0.01)
+#         text_y_offset = 0
+#         for label, value in text.items():
+#             txt = f"{label}: {value}"
+#             text_size = cv2.getTextSize(txt, 0, self.sf, self.tf)[0]
+#             if text_size[0] < 5 or text_size[1] < 5:
+#                 text_size = (5, 5)
+#             text_x = im0.shape[1] - text_size[0] - margin * 2 - horizontal_gap
+#             text_y = text_y_offset + text_size[1] + margin * 2 + vertical_gap
+#             rect_x1 = text_x - margin * 2
+#             rect_y1 = text_y - text_size[1] - margin * 2
+#             rect_x2 = text_x + text_size[0] + margin * 2
+#             rect_y2 = text_y + margin * 2
+#             cv2.rectangle(im0, (rect_x1, rect_y1), (rect_x2, rect_y2), bg_color, -1)
+#             cv2.putText(im0, txt, (text_x, text_y), 0, self.sf, txt_color, self.tf, lineType=cv2.LINE_AA)
+#             text_y_offset = rect_y2
+#
+#     @staticmethod
+#     def estimate_pose_angle(a, b, c):
+#         """
+#         Calculate the pose angle for object.
+#
+#         Args:
+#             a (float) : The value of pose point a
+#             b (float): The value of pose point b
+#             c (float): The value o pose point c
+#
+#         Returns:
+#             angle (degree): Degree value of angle between three points
+#         """
+#         a, b, c = np.array(a), np.array(b), np.array(c)
+#         radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - np.arctan2(a[1] - b[1], a[0] - b[0])
+#         angle = np.abs(radians * 180.0 / np.pi)
+#         if angle > 180.0:
+#             angle = 360 - angle
+#         return angle
+#
+#     def draw_specific_points(self, keypoints, indices=None, radius=2, conf_thres=0.25):
+#         """
+#         Draw specific keypoints for gym steps counting.
+#
+#         Args:
+#             keypoints (list): Keypoints data to be plotted.
+#             indices (list, optional): Keypoint indices to be plotted. Defaults to [2, 5, 7].
+#             radius (int, optional): Keypoint radius. Defaults to 2.
+#             conf_thres (float, optional): Confidence threshold for keypoints. Defaults to 0.25.
+#
+#         Returns:
+#             (numpy.ndarray): Image with drawn keypoints.
+#
+#         Note:
+#             Keypoint format: [x, y] or [x, y, confidence].
+#             Modifies self.im in-place.
+#         """
+#         indices = indices or [2, 5, 7]
+#         points = [(int(k[0]), int(k[1])) for i, k in enumerate(keypoints) if i in indices and k[2] >= conf_thres]
+#
+#         # Draw lines between consecutive points
+#         for start, end in zip(points[:-1], points[1:]):
+#             cv2.line(self.im, start, end, (0, 255, 0), 2, lineType=cv2.LINE_AA)
+#
+#         # Draw circles for keypoints
+#         for pt in points:
+#             cv2.circle(self.im, pt, radius, (0, 0, 255), -1, lineType=cv2.LINE_AA)
+#
+#         return self.im
+#
+#     def plot_workout_information(self, display_text, position, color=(104, 31, 17), txt_color=(255, 255, 255)):
+#         """
+#         Draw text with a background on the image.
+#
+#         Args:
+#             display_text (str): The text to be displayed.
+#             position (tuple): Coordinates (x, y) on the image where the text will be placed.
+#             color (tuple, optional): Text background color
+#             txt_color (tuple, optional): Text foreground color
+#         """
+#         (text_width, text_height), _ = cv2.getTextSize(display_text, 0, self.sf, self.tf)
+#
+#         # Draw background rectangle
+#         cv2.rectangle(
+#             self.im,
+#             (position[0], position[1] - text_height - 5),
+#             (position[0] + text_width + 10, position[1] - text_height - 5 + text_height + 10 + self.tf),
+#             color,
+#             -1,
+#         )
+#         # Draw text
+#         cv2.putText(self.im, display_text, position, 0, self.sf, txt_color, self.tf)
+#
+#         return text_height
+#
+#     def plot_angle_and_count_and_stage(
+#         self, angle_text, count_text, stage_text, center_kpt, color=(104, 31, 17), txt_color=(255, 255, 255)
+#     ):
+#         """
+#         Plot the pose angle, count value, and step stage.
+#
+#         Args:
+#             angle_text (str): Angle value for workout monitoring
+#             count_text (str): Counts value for workout monitoring
+#             stage_text (str): Stage decision for workout monitoring
+#             center_kpt (list): Centroid pose index for workout monitoring
+#             color (tuple, optional): Text background color
+#             txt_color (tuple, optional): Text foreground color
+#         """
+#         # Format text
+#         angle_text, count_text, stage_text = f" {angle_text:.2f}", f"Steps : {count_text}", f" {stage_text}"
+#
+#         # Draw angle, count and stage text
+#         angle_height = self.plot_workout_information(
+#             angle_text, (int(center_kpt[0]), int(center_kpt[1])), color, txt_color
+#         )
+#         count_height = self.plot_workout_information(
+#             count_text, (int(center_kpt[0]), int(center_kpt[1]) + angle_height + 20), color, txt_color
+#         )
+#         self.plot_workout_information(
+#             stage_text, (int(center_kpt[0]), int(center_kpt[1]) + angle_height + count_height + 40), color, txt_color
+#         )
+#
+#     def seg_bbox(self, mask, mask_color=(255, 0, 255), label=None, txt_color=(255, 255, 255)):
+#         """
+#         Function for drawing segmented object in bounding box shape.
+#
+#         Args:
+#             mask (np.ndarray): A 2D array of shape (N, 2) containing the contour points of the segmented object.
+#             mask_color (tuple): RGB color for the contour and label background.
+#             label (str, optional): Text label for the object. If None, no label is drawn.
+#             txt_color (tuple): RGB color for the label text.
+#         """
+#         if mask.size == 0:  # no masks to plot
+#             return
+#
+#         cv2.polylines(self.im, [np.int32([mask])], isClosed=True, color=mask_color, thickness=2)
+#         if label:
+#             text_size, _ = cv2.getTextSize(label, 0, self.sf, self.tf)
+#             cv2.rectangle(
+#                 self.im,
+#                 (int(mask[0][0]) - text_size[0] // 2 - 10, int(mask[0][1]) - text_size[1] - 10),
+#                 (int(mask[0][0]) + text_size[0] // 2 + 10, int(mask[0][1] + 10)),
+#                 mask_color,
+#                 -1,
+#             )
+#             cv2.putText(
+#                 self.im, label, (int(mask[0][0]) - text_size[0] // 2, int(mask[0][1])), 0, self.sf, txt_color, self.tf
+#             )
+#
+#     def sweep_annotator(self, line_x=0, line_y=0, label=None, color=(221, 0, 186), txt_color=(255, 255, 255)):
+#         """
+#         Function for drawing a sweep annotation line and an optional label.
+#
+#         Args:
+#             line_x (int): The x-coordinate of the sweep line.
+#             line_y (int): The y-coordinate limit of the sweep line.
+#             label (str, optional): Text label to be drawn in center of sweep line. If None, no label is drawn.
+#             color (tuple): RGB color for the line and label background.
+#             txt_color (tuple): RGB color for the label text.
+#         """
+#         # Draw the sweep line
+#         cv2.line(self.im, (line_x, 0), (line_x, line_y), color, self.tf * 2)
+#
+#         # Draw label, if provided
+#         if label:
+#             (text_width, text_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, self.sf, self.tf)
+#             cv2.rectangle(
+#                 self.im,
+#                 (line_x - text_width // 2 - 10, line_y // 2 - text_height // 2 - 10),
+#                 (line_x + text_width // 2 + 10, line_y // 2 + text_height // 2 + 10),
+#                 color,
+#                 -1,
+#             )
+#             cv2.putText(
+#                 self.im,
+#                 label,
+#                 (line_x - text_width // 2, line_y // 2 + text_height // 2),
+#                 cv2.FONT_HERSHEY_SIMPLEX,
+#                 self.sf,
+#                 txt_color,
+#                 self.tf,
+#             )
+#
+#     def plot_distance_and_line(
+#         self, pixels_distance, centroids, line_color=(104, 31, 17), centroid_color=(255, 0, 255)
+#     ):
+#         """
+#         Plot the distance and line on frame.
+#
+#         Args:
+#             pixels_distance (float): Pixels distance between two bbox centroids.
+#             centroids (list): Bounding box centroids data.
+#             line_color (tuple, optional): Distance line color.
+#             centroid_color (tuple, optional): Bounding box centroid color.
+#         """
+#         # Get the text size
+#         text = f"Pixels Distance: {pixels_distance:.2f}"
+#         (text_width_m, text_height_m), _ = cv2.getTextSize(text, 0, self.sf, self.tf)
+#
+#         # Define corners with 10-pixel margin and draw rectangle
+#         cv2.rectangle(self.im, (15, 25), (15 + text_width_m + 20, 25 + text_height_m + 20), line_color, -1)
+#
+#         # Calculate the position for the text with a 10-pixel margin and draw text
+#         text_position = (25, 25 + text_height_m + 10)
+#         cv2.putText(
+#             self.im,
+#             text,
+#             text_position,
+#             0,
+#             self.sf,
+#             (255, 255, 255),
+#             self.tf,
+#             cv2.LINE_AA,
+#         )
+#
+#         cv2.line(self.im, centroids[0], centroids[1], line_color, 3)
+#         cv2.circle(self.im, centroids[0], 6, centroid_color, -1)
+#         cv2.circle(self.im, centroids[1], 6, centroid_color, -1)
+#
+#     def visioneye(self, box, center_point, color=(235, 219, 11), pin_color=(255, 0, 255)):
+#         """
+#         Function for pinpoint human-vision eye mapping and plotting.
+#
+#         Args:
+#             box (list): Bounding box coordinates
+#             center_point (tuple): center point for vision eye view
+#             color (tuple): object centroid and line color value
+#             pin_color (tuple): visioneye point color value
+#         """
+#         center_bbox = int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)
+#         cv2.circle(self.im, center_point, self.tf * 2, pin_color, -1)
+#         cv2.circle(self.im, center_bbox, self.tf * 2, color, -1)
+#         cv2.line(self.im, center_point, center_bbox, color, self.tf)
+
 class Annotator:
     """
     Ultralytics Annotator for train/val mosaics and JPGs and predictions annotations.
@@ -164,7 +913,8 @@ class Annotator:
         kpt_color (List[int]): Color palette for keypoints.
     """
 
-    def __init__(self, im, line_width=None, font_size=None, font="Arial.ttf", pil=False, example="abc"):
+    def __init__(self, im, line_width=None, font_size=None, font="Arial.ttf", pil=False, example="abc",
+                 use_simotm="RGBT"):
         """Initialize the Annotator class with image and line width along with color palette for keypoints and limbs."""
         non_ascii = not is_ascii(example)  # non-latin labels, i.e. asian, arabic, cyrillic
         input_is_pil = isinstance(im, Image.Image)
@@ -187,6 +937,63 @@ class Annotator:
             self.im = im if im.flags.writeable else im.copy()
             self.tf = max(self.lw - 1, 1)  # font thickness
             self.sf = self.lw / 3  # font scale
+
+        # 2025-01-05-begin
+        self.use_simotm = use_simotm
+        #   self.im 是一个 PIL.Image 对象
+        if isinstance(self.im, Image.Image):  # 确保 self.im 是 PIL.Image 对象
+            # 将 PIL.Image 转换为 NumPy 数组
+            # print(self.im.mode)
+            im_array = np.array(self.im)
+            if self.use_simotm == "Gray16bit":
+                im_array = (im_array / 256).astype(self.im.dtype)
+            if im_array is not None and len(im_array.shape) > 2:
+                # 检查图像是否为 RGBA 模式（即 4 通道）
+                if im_array.shape[2] == 4:
+                    # 扩展为 6 通道，复制第四通道（Alpha 通道）到第五和第六通道
+                    extended_im_array = np.concatenate(
+                        [im_array, im_array[:, :, 3:4], im_array[:, :, 3:4]], axis=-1
+                    )
+                    # 创建一个新的 PIL.Image 对象
+                    self.im = Image.fromarray(extended_im_array)
+
+                    # print(f"Image is extended to 6 channels with shape {self.im.size} and mode {self.im.mode}")
+                elif len(im_array.shape)>2 and im_array.shape[2] == 1:
+                    extended_im_array = np.concatenate(
+                        [im_array, im_array[:, :, 0], im_array[:, :, 0]], axis=-1
+                    )
+
+                    # 创建一个新的 PIL.Image 对象
+                    self.im = Image.fromarray(extended_im_array)
+                elif len(im_array.shape)==2 :
+                    im_array= np.expand_dims(im_array, axis=-1)
+                    extended_im_array = np.concatenate(
+                        [im_array, im_array, im_array], axis=-1
+                    )
+
+                    # 创建一个新的 PIL.Image 对象
+                    self.im = Image.fromarray(extended_im_array)
+                elif im_array.shape[2] == 3 or im_array.shape[2] == 6:
+                    # print("Image does not have 4 or 1 channels, cannot extend to 6 or 3 channels.")
+                    # im_array = np.array(self.im)
+                    self.im = Image.fromarray(im_array)
+                    pass
+                else:
+                    print("Image does not have 1 or 3 or 4 or 6 channels, and cannot extend to 6 or 3 channels.")
+        else:
+            # print(self.im.shape)
+            # self.im = np.uint8(self.im / 256)
+            if self.use_simotm == "Gray16bit":
+                self.im = (self.im / 256).astype(self.im.dtype)
+            if self.im is not None and len(self.im.shape) == 3 and self.im.shape[2] == 4:
+                self.im = np.concatenate([self.im, self.im[..., 3:4], self.im[..., 3:4]], axis=-1)
+            elif self.im is not None and (len(self.im.shape) == 3 and self.im.shape[2] == 1):
+                self.im = np.concatenate([self.im, self.im[..., 0], self.im[..., 0]], axis=-1)
+            elif self.im is not None and len(self.im.shape) == 2 :
+                self.im = np.expand_dims(self.im, axis=-1)
+                self.im = np.concatenate([self.im, self.im, self.im], axis=-1)
+
+        # 2025-01-05-end
         # Pose
         self.skeleton = [
             [16, 14],
@@ -238,16 +1045,7 @@ class Annotator:
         }
 
     def get_txt_color(self, color=(128, 128, 128), txt_color=(255, 255, 255)):
-        """
-        Assign text color based on background color.
-
-        Args:
-            color (tuple, optional): The background color of the rectangle for text (B, G, R).
-            txt_color (tuple, optional): The color of the text (R, G, B).
-
-        Returns:
-            txt_color (tuple): Text color for label
-        """
+        """Assign text color based on background color."""
         if color in self.dark_colors:
             return 104, 31, 17
         elif color in self.light_colors:
@@ -266,6 +1064,7 @@ class Annotator:
             txt_color (tuple, optional): The color of the text (R, G, B).
             margin (int, optional): The margin between the text and the rectangle border.
         """
+
         # If label have more than 3 characters, skip other characters, due to circle size
         if len(label) > 3:
             print(
@@ -307,6 +1106,7 @@ class Annotator:
             txt_color (tuple, optional): The color of the text (R, G, B).
             margin (int, optional): The margin between the text and the rectangle border.
         """
+
         # Calculate the center of the bounding box
         x_center, y_center = int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)
         # Get the size of the text
@@ -333,7 +1133,150 @@ class Annotator:
             lineType=cv2.LINE_AA,
         )
 
-    def box_label(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), rotated=False):
+    # def box_label(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), rotated=False):
+    #     """
+    #     Draws a bounding box to image with label.
+    #
+    #     Args:
+    #         box (tuple): The bounding box coordinates (x1, y1, x2, y2).
+    #         label (str): The text label to be displayed.
+    #         color (tuple, optional): The background color of the rectangle (B, G, R).
+    #         txt_color (tuple, optional): The color of the text (R, G, B).
+    #         rotated (bool, optional): Variable used to check if task is OBB
+    #     """
+    #
+    #     txt_color = self.get_txt_color(color, txt_color)
+    #     if isinstance(box, torch.Tensor):
+    #         box = box.tolist()
+    #     if self.pil or not is_ascii(label):
+    #         if rotated:
+    #             p1 = box[0]
+    #             self.draw.polygon([tuple(b) for b in box], width=self.lw, outline=color)  # PIL requires tuple box
+    #         else:
+    #             p1 = (box[0], box[1])
+    #             self.draw.rectangle(box, width=self.lw, outline=color)  # box
+    #         if label:
+    #             w, h = self.font.getsize(label)  # text width, height
+    #             outside = p1[1] >= h  # label fits outside box
+    #             if p1[0] > self.im.size[0] - w:  # size is (w, h), check if label extend beyond right side of image
+    #                 p1 = self.im.size[0] - w, p1[1]
+    #             self.draw.rectangle(
+    #                 (p1[0], p1[1] - h if outside else p1[1], p1[0] + w + 1, p1[1] + 1 if outside else p1[1] + h + 1),
+    #                 fill=color,
+    #             )
+    #             # self.draw.text((box[0], box[1]), label, fill=txt_color, font=self.font, anchor='ls')  # for PIL>8.0
+    #             self.draw.text((p1[0], p1[1] - h if outside else p1[1]), label, fill=txt_color, font=self.font)
+    #     else:  # cv2
+    #         if rotated:
+    #             p1 = [int(b) for b in box[0]]
+    #             cv2.polylines(self.im, [np.asarray(box, dtype=int)], True, color, self.lw)  # cv2 requires nparray box
+    #         else:
+    #             p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+    #             cv2.rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
+    #         if label:
+    #             w, h = cv2.getTextSize(label, 0, fontScale=self.sf, thickness=self.tf)[0]  # text width, height
+    #             h += 3  # add pixels to pad text
+    #             outside = p1[1] >= h  # label fits outside box
+    #             if p1[0] > self.im.shape[1] - w:  # shape is (h, w), check if label extend beyond right side of image
+    #                 p1 = self.im.shape[1] - w, p1[1]
+    #             p2 = p1[0] + w, p1[1] - h if outside else p1[1] + h
+    #             cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled
+    #             cv2.putText(
+    #                 self.im,
+    #                 label,
+    #                 (p1[0], p1[1] - 2 if outside else p1[1] + h - 1),
+    #                 0,
+    #                 self.sf,
+    #                 txt_color,
+    #                 thickness=self.tf,
+    #                 lineType=cv2.LINE_AA,
+    #             )
+
+
+
+    # def box_label(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), rotated=False):
+    #     """
+    #     Draws a bounding box to image with label.
+    #
+    #     Args:
+    #         box (tuple): The bounding box coordinates (x1, y1, x2, y2).
+    #         label (str): The text label to be displayed.
+    #         color (tuple, optional): The background color of the rectangle (B, G, R).
+    #         txt_color (tuple, optional): The color of the text (R, G, B).
+    #         rotated (bool, optional): Variable used to check if task is OBB
+    #     """
+    #
+    #     txt_color = self.get_txt_color(color, txt_color)
+    #
+    #     # Convert to numpy array if necessary
+    #     if isinstance(self.im, Image.Image):
+    #         im_array = np.array(self.im)
+    #     else:
+    #         im_array = self.im
+    #     # print(label)
+    #     # print(im_array.shape)
+    #     # print("im_array.dtype=",im_array.dtype)
+    #     if im_array is not None and len(im_array.shape) == 2:
+    #         im_array = np.expand_dims(im_array, axis=-1)
+    #         im_array = np.concatenate([im_array, im_array, im_array], axis=-1)
+    #
+    #     elif im_array is not None and len(im_array.shape) > 2 and im_array.shape[2] == 4:
+    #         im_array = np.concatenate([im_array, im_array[..., 3:4], im_array[..., 3:4]], axis=-1)
+    #     # print("im_array.shape=",im_array.shape)
+    #     # print("self.pil=",self.pil)
+    #     # Handle 6-channel images
+    #     if im_array is not None and len(im_array.shape) > 2 and im_array.shape[2] == 6:
+    #         rgb1 = im_array[:, :, :3]
+    #         rgb2 = im_array[:, :, 3:6]
+    #         if self.pil:
+    #             im1 = Image.fromarray(rgb1)
+    #             im2 = Image.fromarray(rgb2)
+    #             self._draw_on_image(im1, box, label, color, txt_color, rotated)
+    #             self._draw_on_image(im2, box, label, color, txt_color, rotated)
+    #             im_combined = Image.merge("RGB", (im1, im2))
+    #             self.im = np.array(im_combined)
+    #         else:
+    #             rgb1 = self._draw_on_cv2_image(rgb1, box, label, color, txt_color, rotated)
+    #             rgb2 = self._draw_on_cv2_image(rgb2, box, label, color, txt_color, rotated)
+    #             im_combined = np.concatenate((rgb1, rgb2), axis=2)
+    #             self.im = im_combined
+    #
+    #     # Handle 4-channel images
+    #     elif im_array is not None and len(im_array.shape) > 2 and im_array.shape[2] == 4:
+    #         rgb = im_array[:, :, :3]
+    #         gray = im_array[:, :, 3]
+    #         if self.pil:
+    #             im_rgb = Image.fromarray(rgb)
+    #             im_gray = Image.fromarray(gray)
+    #             self._draw_on_image(im_rgb, box, label, color, txt_color, rotated)
+    #             self._draw_on_image(im_gray, box, label, color, txt_color, rotated)
+    #             # Recombine RGB and Gray channels
+    #             im_rgb_array = np.array(im_rgb)
+    #             im_gray_array = np.array(im_gray)
+    #             # print("rgb.shape=",rgb.shape)
+    #             # print("gray.shape=", gray.shape)
+    #             self.im = np.concatenate((im_rgb_array, np.expand_dims(im_gray_array, axis=-1)), axis=2)
+    #         else:
+    #             rgb = self._draw_on_cv2_image(rgb, box, label, color, txt_color, rotated)
+    #             # im_gray_colored = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    #             gray = self._draw_on_cv2_image(gray, box, label, color, txt_color, rotated)
+    #             # print("rgb.shape=",rgb.shape)
+    #             # print("gray.shape=", gray.shape)
+    #             # Recombine RGB and Gray channels
+    #             # gray_expanded = np.expand_dims(gray, axis=-1)
+    #             # 2025 01 04
+    #             self.im = np.concatenate((rgb, np.expand_dims(gray, axis=-1)), axis=2)
+    #             # 2025 01 04
+    #             # print("self.im.shape=",self.im.shape)
+    #
+    #     # Handle standard 3-channel or other cases
+    #     elif im_array is not None:
+    #         if self.pil:
+    #             self.im = self._draw_on_image(self.im, box, label, color, txt_color, rotated)
+    #         else:
+    #             self.im = self._draw_on_cv2_image(im_array, box, label, color, txt_color, rotated)
+
+    def box_label(self, box, label="", color=(128, 128, 128), txt_color=(255, 255, 255), rotated=False,training=False):
         """
         Draws a bounding box to image with label.
 
@@ -344,52 +1287,178 @@ class Annotator:
             txt_color (tuple, optional): The color of the text (R, G, B).
             rotated (bool, optional): Variable used to check if task is OBB
         """
+        if self.im is  None:
+            return
         txt_color = self.get_txt_color(color, txt_color)
-        if isinstance(box, torch.Tensor):
-            box = box.tolist()
-        if self.pil or not is_ascii(label):
-            if rotated:
-                p1 = box[0]
-                self.draw.polygon([tuple(b) for b in box], width=self.lw, outline=color)  # PIL requires tuple box
+
+        # Convert to numpy array if necessary
+        if isinstance(self.im, Image.Image):
+            im_array = np.array(self.im)
+        else:
+            im_array = self.im
+
+        # Handle 6-channel images
+        if im_array.shape[2] == 6:
+            rgb1 = im_array[:, :, :3]
+            rgb2 = im_array[:, :, 3:6]
+            if self.pil:
+                im1 = Image.fromarray(rgb1)
+                im2 = Image.fromarray(rgb2)
+                self._draw_on_image(im1, box, label, color, txt_color, rotated)
+                self._draw_on_image(im2, box, label, color, txt_color, rotated)
+                im_combined = Image.merge("RGB", (im1, im2))
+                self.im = np.array(im_combined)
             else:
-                p1 = (box[0], box[1])
-                self.draw.rectangle(box, width=self.lw, outline=color)  # box
-            if label:
-                w, h = self.font.getsize(label)  # text width, height
-                outside = p1[1] >= h  # label fits outside box
-                if p1[0] > self.im.size[0] - w:  # size is (w, h), check if label extend beyond right side of image
-                    p1 = self.im.size[0] - w, p1[1]
-                self.draw.rectangle(
-                    (p1[0], p1[1] - h if outside else p1[1], p1[0] + w + 1, p1[1] + 1 if outside else p1[1] + h + 1),
-                    fill=color,
-                )
-                # self.draw.text((box[0], box[1]), label, fill=txt_color, font=self.font, anchor='ls')  # for PIL>8.0
-                self.draw.text((p1[0], p1[1] - h if outside else p1[1]), label, fill=txt_color, font=self.font)
-        else:  # cv2
-            if rotated:
-                p1 = [int(b) for b in box[0]]
-                cv2.polylines(self.im, [np.asarray(box, dtype=int)], True, color, self.lw)  # cv2 requires nparray box
+                rgb1=self._draw_on_cv2_image(rgb1, box, label, color, txt_color, rotated)
+                rgb2=self._draw_on_cv2_image(rgb2, box, label, color, txt_color, rotated)
+                im_combined = np.concatenate((rgb1, rgb2), axis=2)
+                self.im = im_combined
+
+        # Handle 4-channel images
+        elif im_array.shape[2] == 4:
+            rgb = im_array[:, :, :3]
+            gray = im_array[:, :, 3]
+            if self.pil:
+                im_rgb = Image.fromarray(rgb)
+                im_gray = Image.fromarray(gray)
+                self._draw_on_image(im_rgb, box, label, color, txt_color, rotated)
+                self._draw_on_image(im_gray, box, label, color, txt_color, rotated)
+                # Recombine RGB and Gray channels
+                im_rgb_array = np.array(im_rgb)
+                im_gray_array = np.array(im_gray)
+                self.im = np.concatenate((im_rgb_array, np.expand_dims(im_gray_array, axis=-1)), axis=2)
             else:
-                p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-                cv2.rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
-            if label:
-                w, h = cv2.getTextSize(label, 0, fontScale=self.sf, thickness=self.tf)[0]  # text width, height
-                h += 3  # add pixels to pad text
-                outside = p1[1] >= h  # label fits outside box
-                if p1[0] > self.im.shape[1] - w:  # shape is (h, w), check if label extend beyond right side of image
-                    p1 = self.im.shape[1] - w, p1[1]
-                p2 = p1[0] + w, p1[1] - h if outside else p1[1] + h
-                cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled
-                cv2.putText(
-                    self.im,
-                    label,
-                    (p1[0], p1[1] - 2 if outside else p1[1] + h - 1),
-                    0,
-                    self.sf,
-                    txt_color,
-                    thickness=self.tf,
-                    lineType=cv2.LINE_AA,
-                )
+                rgb=self._draw_on_cv2_image(rgb, box, label, color, txt_color, rotated)
+                # im_gray_colored = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+                gray=self._draw_on_cv2_image(gray, box, label, color, txt_color, rotated)
+                # Recombine RGB and Gray channels
+                # gray_expanded = np.expand_dims(gray, axis=-1)
+                self.im = np.concatenate((rgb, gray), axis=2)
+
+        # Handle standard 3-channel or other cases
+        else:
+            if  self.im is not None:
+                if training:
+                    if self.pil:
+                        self._draw_on_image(self.im, box, label, color, txt_color, rotated)
+                    else:
+                        self._draw_on_cv2_image(im_array, box, label, color, txt_color, rotated)
+                else:
+                    if self.pil:
+                        self.im=self._draw_on_image(self.im, box, label, color, txt_color, rotated)
+                    else:
+                        self.im=self._draw_on_cv2_image(im_array, box, label, color, txt_color, rotated)
+
+    def _draw_on_image(self, image, box, label, color, txt_color, rotated):
+        draw = ImageDraw.Draw(image)
+        if rotated:
+            p1 = box[0]
+            draw.polygon([tuple(b) for b in box], width=self.lw, outline=color)
+        else:
+            p1 = (box[0], box[1])
+            draw.rectangle(box, width=self.lw, outline=color)
+        if label:
+            w, h = self.font.getsize(label)
+            outside = p1[1] >= h
+            if p1[0] > image.size[0] - w:
+                p1 = image.size[0] - w, p1[1]
+            draw.rectangle(
+                (p1[0], p1[1] - h if outside else p1[1], p1[0] + w + 1, p1[1] + 1 if outside else p1[1] + h + 1),
+                fill=color,
+            )
+            draw.text((p1[0], p1[1] - h if outside else p1[1]), label, fill=txt_color, font=self.font)
+
+
+    def _draw_on_cv2_image(self, image, box, label, color, txt_color, rotated):
+        """
+        Draws a box and label on an image.
+
+        :param image: The image to draw on (should be a NumPy array of type uint8).
+        :param box: A tuple or list of points defining the box. Should be (x1, y1, x2, y2) or a rotated box.
+        :param label: The label text to display.
+        :param color: The color of the box (BGR format).
+        :param txt_color: The color of the label text (BGR format).
+        :param rotated: Whether the box is rotated (not implemented in this example).
+        """
+        # print(image.dtype)
+        image=image.copy()
+        if image.dtype != np.uint8:
+            image = image.astype(np.uint8)
+        # print(image.shape)
+        if rotated:
+            p1 = [int(b) for b in box[0]]
+            cv2.polylines(image, [np.asarray(box, dtype=int)], True, color, self.lw)
+        else:
+            # p1 = (int(box[0]), int(box[1]))
+            # p2 = (int(box[2]), int(box[3]))
+            # Draw the rectangle
+            p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+            cv2.rectangle(image, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
+
+        if label:
+            # Get text size
+            w, h = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, self.sf, self.tf)[0]
+            h += 3  # Add a bit of padding
+
+            outside = p1[1] >= h
+            if p1[0] > image.shape[1] - w:
+                p1 = (image.shape[1] - w, p1[1])
+
+            p2 = (p1[0] + w, p1[1] - h) if outside else (p1[0] + w, p1[1] + h)
+
+            # Draw background rectangle for text
+            cv2.rectangle(image, p1, p2, color, thickness=-1, lineType=cv2.LINE_AA)
+
+            # Draw the text
+            cv2.putText(
+                image,
+                label,
+                (p1[0], p1[1] - 2 if outside else p1[1] + h - 1),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                self.sf,
+                txt_color,
+                thickness=self.tf,
+                lineType=cv2.LINE_AA
+            )
+        return  image
+
+    # def masks(self, masks, colors, im_gpu, alpha=0.5, retina_masks=False):
+    #     """
+    #     Plot masks on image.
+    #
+    #     Args:
+    #         masks (tensor): Predicted masks on cuda, shape: [n, h, w]
+    #         colors (List[List[Int]]): Colors for predicted masks, [[r, g, b] * n]
+    #         im_gpu (tensor): Image is in cuda, shape: [3, h, w], range: [0, 1]
+    #         alpha (float): Mask transparency: 0.0 fully transparent, 1.0 opaque
+    #         retina_masks (bool): Whether to use high resolution masks or not. Defaults to False.
+    #     """
+    #     print(self.im.shape)
+    #     print(im_gpu.shape)
+    #     if self.pil:
+    #         # Convert to numpy first
+    #         self.im = np.asarray(self.im).copy()
+    #     if len(masks) == 0:
+    #         self.im[:] = im_gpu.permute(1, 2, 0).contiguous().cpu().numpy() * 255
+    #     if im_gpu.device != masks.device:
+    #         im_gpu = im_gpu.to(masks.device)
+    #     colors = torch.tensor(colors, device=masks.device, dtype=torch.float32) / 255.0  # shape(n,3)
+    #     colors = colors[:, None, None]  # shape(n,1,1,3)
+    #     masks = masks.unsqueeze(3)  # shape(n,h,w,1)
+    #     masks_color = masks * (colors * alpha)  # shape(n,h,w,3)
+    #
+    #     inv_alpha_masks = (1 - masks * alpha).cumprod(0)  # shape(n,h,w,1)
+    #     mcs = masks_color.max(dim=0).values  # shape(n,h,w,3)
+    #
+    #     im_gpu = im_gpu.flip(dims=[0])  # flip channel
+    #     im_gpu = im_gpu.permute(1, 2, 0).contiguous()  # shape(h,w,3)
+    #     im_gpu = im_gpu * inv_alpha_masks[-1] + mcs
+    #     im_mask = im_gpu * 255
+    #     im_mask_np = im_mask.byte().cpu().numpy()
+    #     self.im[:] = im_mask_np if retina_masks else ops.scale_image(im_mask_np, self.im.shape)
+    #     if self.pil:
+    #         # Convert im back to PIL and update draw
+    #         self.fromarray(self.im)
 
     def masks(self, masks, colors, im_gpu, alpha=0.5, retina_masks=False):
         """
@@ -402,9 +1471,20 @@ class Annotator:
             alpha (float): Mask transparency: 0.0 fully transparent, 1.0 opaque
             retina_masks (bool): Whether to use high resolution masks or not. Defaults to False.
         """
+        # print(self.im.shape)
+        # print(im_gpu.shape)
         if self.pil:
             # Convert to numpy first
             self.im = np.asarray(self.im).copy()
+
+        # 扩展 im_gpu 的通道数
+        if len(im_gpu.shape)>2 and im_gpu.shape[0] == 4:
+            # 将 4 通道图像扩展为 6 通道，5 和 6 通道与第 4 通道相同
+            im_gpu = torch.cat([im_gpu, im_gpu[3:4, :, :], im_gpu[3:4, :, :]], dim=0)
+        elif len(im_gpu.shape)==2:
+            # 将 1 通道图像扩展为 3 通道，1 和 2 通道与第 3 通道相同
+            im_gpu = torch.cat([im_gpu, im_gpu, im_gpu], dim=0)
+
         if len(masks) == 0:
             self.im[:] = im_gpu.permute(1, 2, 0).contiguous().cpu().numpy() * 255
         if im_gpu.device != masks.device:
@@ -416,40 +1496,120 @@ class Annotator:
 
         inv_alpha_masks = (1 - masks * alpha).cumprod(0)  # shape(n,h,w,1)
         mcs = masks_color.max(dim=0).values  # shape(n,h,w,3)
+        # print("im_gpu.shape=",im_gpu.shape)
+        # 处理 im_gpu（6 通道和 3 通道）
+        if im_gpu.shape[0] == 6:
+            # 分离 6 通道为两个 3 通道图像
+            rgb1 = im_gpu[:3, :, :].flip(dims=[0])  # 取前3通道并翻转
+            rgb2 = im_gpu[3:, :, :].flip(dims=[0])  # 取后3通道并翻转
 
-        im_gpu = im_gpu.flip(dims=[0])  # flip channel
-        im_gpu = im_gpu.permute(1, 2, 0).contiguous()  # shape(h,w,3)
-        im_gpu = im_gpu * inv_alpha_masks[-1] + mcs
+            # 对每个通道分别进行处理
+            rgb1 = rgb1.permute(1, 2, 0).contiguous()  # shape(h, w, 3)
+            rgb2 = rgb2.permute(1, 2, 0).contiguous()  # shape(h, w, 3)
+
+            # 分别应用 alpha 和 mask
+            rgb1 = rgb1 * inv_alpha_masks[-1] + mcs
+            rgb2 = rgb2 * inv_alpha_masks[-1] + mcs
+
+            # 合并两部分
+            # im_gpu = torch.cat([rgb1.unsqueeze(0), rgb2.unsqueeze(0)], dim=0).flip(dims=[0])  # shape(6, h, w)
+            im_gpu = torch.cat([rgb1, rgb2], dim=-1)  # 结果是 ( w,h,6)
+
+        elif im_gpu.shape[0] == 3:
+            # 对 3 通道图像进行处理
+            im_gpu = im_gpu.flip(dims=[0])  # flip channel
+            im_gpu = im_gpu.permute(1, 2, 0).contiguous()  # shape(h, w, 3)
+            im_gpu = im_gpu * inv_alpha_masks[-1] + mcs
+
+
+        # 转换回 numpy 格式，处理图像并应用 mask
         im_mask = im_gpu * 255
         im_mask_np = im_mask.byte().cpu().numpy()
+        # print("im_mask_np.shape=", im_mask_np.shape)
+        # 更新 im
         self.im[:] = im_mask_np if retina_masks else ops.scale_image(im_mask_np, self.im.shape)
-        if self.pil:
-            # Convert im back to PIL and update draw
-            self.fromarray(self.im)
 
-    def kpts(self, kpts, shape=(640, 640), radius=None, kpt_line=True, conf_thres=0.25, kpt_color=None):
+    # def kpts(self, kpts, shape=(640, 640), radius=5, kpt_line=True, conf_thres=0.25, kpt_color=None):
+    #     """
+    #     Plot keypoints on the image.
+    #
+    #     Args:
+    #         kpts (tensor): Predicted keypoints with shape [17, 3]. Each keypoint has (x, y, confidence).
+    #         shape (tuple): Image shape as a tuple (h, w), where h is the height and w is the width.
+    #         radius (int, optional): Radius of the drawn keypoints. Default is 5.
+    #         kpt_line (bool, optional): If True, the function will draw lines connecting keypoints
+    #                                    for human pose. Default is True.
+    #         kpt_color (tuple, optional): The color of the keypoints (B, G, R).
+    #
+    #     Note:
+    #         `kpt_line=True` currently only supports human pose plotting.
+    #     """
+    #
+    #     if self.pil:
+    #         # Convert to numpy first
+    #         self.im = np.asarray(self.im).copy()
+    #     nkpt, ndim = kpts.shape
+    #     is_pose = nkpt == 17 and ndim in {2, 3}
+    #     kpt_line &= is_pose  # `kpt_line=True` for now only supports human pose plotting
+    #     for i, k in enumerate(kpts):
+    #         color_k = kpt_color or (self.kpt_color[i].tolist() if is_pose else colors(i))
+    #         x_coord, y_coord = k[0], k[1]
+    #         if x_coord % shape[1] != 0 and y_coord % shape[0] != 0:
+    #             if len(k) == 3:
+    #                 conf = k[2]
+    #                 if conf < conf_thres:
+    #                     continue
+    #             cv2.circle(self.im, (int(x_coord), int(y_coord)), radius, color_k, -1, lineType=cv2.LINE_AA)
+    #
+    #     if kpt_line:
+    #         ndim = kpts.shape[-1]
+    #         for i, sk in enumerate(self.skeleton):
+    #             pos1 = (int(kpts[(sk[0] - 1), 0]), int(kpts[(sk[0] - 1), 1]))
+    #             pos2 = (int(kpts[(sk[1] - 1), 0]), int(kpts[(sk[1] - 1), 1]))
+    #             if ndim == 3:
+    #                 conf1 = kpts[(sk[0] - 1), 2]
+    #                 conf2 = kpts[(sk[1] - 1), 2]
+    #                 if conf1 < conf_thres or conf2 < conf_thres:
+    #                     continue
+    #             if pos1[0] % shape[1] == 0 or pos1[1] % shape[0] == 0 or pos1[0] < 0 or pos1[1] < 0:
+    #                 continue
+    #             if pos2[0] % shape[1] == 0 or pos2[1] % shape[0] == 0 or pos2[0] < 0 or pos2[1] < 0:
+    #                 continue
+    #             cv2.line(
+    #                 self.im,
+    #                 pos1,
+    #                 pos2,
+    #                 kpt_color or self.limb_color[i].tolist(),
+    #                 thickness=2,
+    #                 lineType=cv2.LINE_AA,
+    #             )
+    #     if self.pil:
+    #         # Convert im back to PIL and update draw
+    #         self.fromarray(self.im)
+
+    def kpts(self, kpts, shape=(640, 640), radius=5, kpt_line=True, conf_thres=0.25, kpt_color=None):
         """
         Plot keypoints on the image.
 
         Args:
-            kpts (torch.Tensor): Keypoints, shape [17, 3] (x, y, confidence).
-            shape (tuple, optional): Image shape (h, w). Defaults to (640, 640).
-            radius (int, optional): Keypoint radius. Defaults to 5.
-            kpt_line (bool, optional): Draw lines between keypoints. Defaults to True.
-            conf_thres (float, optional): Confidence threshold. Defaults to 0.25.
-            kpt_color (tuple, optional): Keypoint color (B, G, R). Defaults to None.
+            kpts (tensor): Predicted keypoints with shape [17, 3]. Each keypoint has (x, y, confidence).
+            shape (tuple): Image shape as a tuple (h, w), where h is the height and w is the width.
+            radius (int, optional): Radius of the drawn keypoints. Default is 5.
+            kpt_line (bool, optional): If True, the function will draw lines connecting keypoints
+                                       for human pose. Default is True.
+            kpt_color (tuple, optional): The color of the keypoints (B, G, R).
 
         Note:
-            - `kpt_line=True` currently only supports human pose plotting.
-            - Modifies self.im in-place.
-            - If self.pil is True, converts image to numpy array and back to PIL.
+            `kpt_line=True` currently only supports human pose plotting.
         """
-        radius = radius if radius is not None else self.lw
+
         if self.pil:
             # Convert to numpy first
             self.im = np.asarray(self.im).copy()
         nkpt, ndim = kpts.shape
         is_pose = nkpt == 17 and ndim in {2, 3}
+        rgb1 = None
+        rgb2 = None
         kpt_line &= is_pose  # `kpt_line=True` for now only supports human pose plotting
         for i, k in enumerate(kpts):
             color_k = kpt_color or (self.kpt_color[i].tolist() if is_pose else colors(i))
@@ -459,7 +1619,15 @@ class Annotator:
                     conf = k[2]
                     if conf < conf_thres:
                         continue
-                cv2.circle(self.im, (int(x_coord), int(y_coord)), radius, color_k, -1, lineType=cv2.LINE_AA)
+                # cv2.circle(self.im, (int(x_coord), int(y_coord)), radius, color_k, -1, lineType=cv2.LINE_AA)
+                if self.im.shape[2] == 6:
+                    rgb1 = self.im[:, :, :3].copy()
+                    rgb2 = self.im[:, :, 3:6].copy()
+                    # print(rgb1.shape)
+                    cv2.circle(rgb1, (int(x_coord), int(y_coord)), radius, color_k, -1, lineType=cv2.LINE_AA)
+                    cv2.circle(rgb2, (int(x_coord), int(y_coord)), radius, color_k, -1, lineType=cv2.LINE_AA)
+                else:
+                    cv2.circle(self.im, (int(x_coord), int(y_coord)), radius, color_k, -1, lineType=cv2.LINE_AA)
 
         if kpt_line:
             ndim = kpts.shape[-1]
@@ -475,14 +1643,39 @@ class Annotator:
                     continue
                 if pos2[0] % shape[1] == 0 or pos2[1] % shape[0] == 0 or pos2[0] < 0 or pos2[1] < 0:
                     continue
-                cv2.line(
-                    self.im,
-                    pos1,
-                    pos2,
-                    kpt_color or self.limb_color[i].tolist(),
-                    thickness=int(np.ceil(self.lw / 2)),
-                    lineType=cv2.LINE_AA,
-                )
+
+
+                if self.im.shape[2] == 6:
+                    cv2.line(
+                        rgb1,
+                        pos1,
+                        pos2,
+                        kpt_color or self.limb_color[i].tolist(),
+                        thickness=2,
+                        lineType=cv2.LINE_AA,
+                    )
+                    cv2.line(
+                        rgb2,
+                        pos1,
+                        pos2,
+                        kpt_color or self.limb_color[i].tolist(),
+                        thickness=2,
+                        lineType=cv2.LINE_AA,
+                    )
+                else:
+                    cv2.line(
+                        self.im,
+                        pos1,
+                        pos2,
+                        kpt_color or self.limb_color[i].tolist(),
+                        thickness=2,
+                        lineType=cv2.LINE_AA,
+                    )
+
+        if self.im.shape[2] == 6:
+            im_combined = np.concatenate((rgb1, rgb2), axis=2)
+            self.im = im_combined
+
         if self.pil:
             # Convert im back to PIL and update draw
             self.fromarray(self.im)
@@ -532,21 +1725,13 @@ class Annotator:
 
     def show(self, title=None):
         """Show the annotated image."""
-        im = Image.fromarray(np.asarray(self.im)[..., ::-1])  # Convert numpy array to PIL Image with RGB to BGR
-        if IS_COLAB or IS_KAGGLE:  # can not use IS_JUPYTER as will run for all ipython environments
-            try:
-                display(im)  # noqa - display() function only available in ipython environments
-            except ImportError as e:
-                LOGGER.warning(f"Unable to display image in Jupyter notebooks: {e}")
-        else:
-            im.show(title=title)
+        Image.fromarray(np.asarray(self.im)[..., ::-1]).show(title)
 
     def save(self, filename="image.jpg"):
         """Save the annotated image to 'filename'."""
         cv2.imwrite(filename, np.asarray(self.im))
 
-    @staticmethod
-    def get_bbox_dimension(bbox=None):
+    def get_bbox_dimension(self, bbox=None):
         """
         Calculate the area of a bounding box.
 
@@ -554,10 +1739,9 @@ class Annotator:
             bbox (tuple): Bounding box coordinates in the format (x_min, y_min, x_max, y_max).
 
         Returns:
-            width (float): Width of the bounding box.
-            height (float): Height of the bounding box.
-            area (float): Area enclosed by the bounding box.
+            angle (degree): Degree value of angle between three points
         """
+
         x_min, y_min, x_max, y_max = bbox
         width = x_max - x_min
         height = y_max - y_min
@@ -572,11 +1756,8 @@ class Annotator:
             color (tuple): Region Color value
             thickness (int): Region area thickness value
         """
-        cv2.polylines(self.im, [np.array(reg_pts, dtype=np.int32)], isClosed=True, color=color, thickness=thickness)
 
-        # Draw small circles at the corner points
-        for point in reg_pts:
-            cv2.circle(self.im, (point[0], point[1]), thickness * 2, color, -1)  # -1 fills the circle
+        cv2.polylines(self.im, [np.array(reg_pts, dtype=np.int32)], isClosed=True, color=color, thickness=thickness)
 
     def draw_centroid_and_tracks(self, track, color=(255, 0, 255), track_thickness=2):
         """
@@ -587,6 +1768,7 @@ class Annotator:
             color (tuple): tracks line color
             track_thickness (int): track line thickness value
         """
+
         points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
         cv2.polylines(self.im, [points], isClosed=False, color=color, thickness=track_thickness)
         cv2.circle(self.im, (int(track[-1][0]), int(track[-1][1])), track_thickness * 2, color, -1)
@@ -596,11 +1778,12 @@ class Annotator:
         Displays queue counts on an image centered at the points with customizable font size and colors.
 
         Args:
-            label (str): Queue counts label.
-            points (tuple): Region points for center point calculation to display text.
-            region_color (tuple): RGB queue region color.
-            txt_color (tuple): RGB text display color.
+            label (str): queue counts label
+            points (tuple): region points for center point calculation to display text
+            region_color (RGB): queue region color
+            txt_color (RGB): text display color
         """
+
         x_values = [point[0] for point in points]
         y_values = [point[1] for point in points]
         center_x = sum(x_values) // len(points)
@@ -636,14 +1819,15 @@ class Annotator:
         Display the bounding boxes labels in parking management app.
 
         Args:
-            im0 (ndarray): Inference image.
-            text (str): Object/class name.
-            txt_color (tuple): Display color for text foreground.
-            bg_color (tuple): Display color for text background.
-            x_center (float): The x position center point for bounding box.
-            y_center (float): The y position center point for bounding box.
-            margin (int): The gap between text and rectangle for better display.
+            im0 (ndarray): inference image
+            text (str): object/class name
+            txt_color (bgr color): display color for text foreground
+            bg_color (bgr color): display color for text background
+            x_center (float): x position center point for bounding box
+            y_center (float): y position center point for bounding box
+            margin (int): gap between text and rectangle for better display
         """
+
         text_size = cv2.getTextSize(text, 0, fontScale=self.sf, thickness=self.tf)[0]
         text_x = x_center - text_size[0] // 2
         text_y = y_center + text_size[1] // 2
@@ -660,12 +1844,13 @@ class Annotator:
         Display the overall statistics for parking lots.
 
         Args:
-            im0 (ndarray): Inference image.
-            text (dict): Labels dictionary.
-            txt_color (tuple): Display color for text foreground.
-            bg_color (tuple): Display color for text background.
-            margin (int): Gap between text and rectangle for better display.
+            im0 (ndarray): inference image
+            text (dict): labels dictionary
+            txt_color (bgr color): display color for text foreground
+            bg_color (bgr color): display color for text background
+            margin (int): gap between text and rectangle for better display
         """
+
         horizontal_gap = int(im0.shape[1] * 0.02)
         vertical_gap = int(im0.shape[0] * 0.01)
         text_y_offset = 0
@@ -697,6 +1882,7 @@ class Annotator:
         Returns:
             angle (degree): Degree value of angle between three points
         """
+
         a, b, c = np.array(a), np.array(b), np.array(c)
         radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - np.arctan2(a[1] - b[1], a[0] - b[0])
         angle = np.abs(radians * 180.0 / np.pi)
@@ -704,178 +1890,164 @@ class Annotator:
             angle = 360 - angle
         return angle
 
-    def draw_specific_points(self, keypoints, indices=None, radius=2, conf_thres=0.25):
+    def draw_specific_points(self, keypoints, indices=None, shape=(640, 640), radius=2, conf_thres=0.25):
         """
         Draw specific keypoints for gym steps counting.
 
         Args:
-            keypoints (list): Keypoints data to be plotted.
-            indices (list, optional): Keypoint indices to be plotted. Defaults to [2, 5, 7].
-            radius (int, optional): Keypoint radius. Defaults to 2.
-            conf_thres (float, optional): Confidence threshold for keypoints. Defaults to 0.25.
-
-        Returns:
-            (numpy.ndarray): Image with drawn keypoints.
-
-        Note:
-            Keypoint format: [x, y] or [x, y, confidence].
-            Modifies self.im in-place.
+            keypoints (list): list of keypoints data to be plotted
+            indices (list): keypoints ids list to be plotted
+            shape (tuple): imgsz for model inference
+            radius (int): Keypoint radius value
         """
-        indices = indices or [2, 5, 7]
-        points = [(int(k[0]), int(k[1])) for i, k in enumerate(keypoints) if i in indices and k[2] >= conf_thres]
 
-        # Draw lines between consecutive points
-        for start, end in zip(points[:-1], points[1:]):
-            cv2.line(self.im, start, end, (0, 255, 0), 2, lineType=cv2.LINE_AA)
-
-        # Draw circles for keypoints
-        for pt in points:
-            cv2.circle(self.im, pt, radius, (0, 0, 255), -1, lineType=cv2.LINE_AA)
-
+        if indices is None:
+            indices = [2, 5, 7]
+        for i, k in enumerate(keypoints):
+            if i in indices:
+                x_coord, y_coord = k[0], k[1]
+                if x_coord % shape[1] != 0 and y_coord % shape[0] != 0:
+                    if len(k) == 3:
+                        conf = k[2]
+                        if conf < conf_thres:
+                            continue
+                    cv2.circle(self.im, (int(x_coord), int(y_coord)), radius, (0, 255, 0), -1, lineType=cv2.LINE_AA)
         return self.im
-
-    def plot_workout_information(self, display_text, position, color=(104, 31, 17), txt_color=(255, 255, 255)):
-        """
-        Draw text with a background on the image.
-
-        Args:
-            display_text (str): The text to be displayed.
-            position (tuple): Coordinates (x, y) on the image where the text will be placed.
-            color (tuple, optional): Text background color
-            txt_color (tuple, optional): Text foreground color
-        """
-        (text_width, text_height), _ = cv2.getTextSize(display_text, 0, self.sf, self.tf)
-
-        # Draw background rectangle
-        cv2.rectangle(
-            self.im,
-            (position[0], position[1] - text_height - 5),
-            (position[0] + text_width + 10, position[1] - text_height - 5 + text_height + 10 + self.tf),
-            color,
-            -1,
-        )
-        # Draw text
-        cv2.putText(self.im, display_text, position, 0, self.sf, txt_color, self.tf)
-
-        return text_height
 
     def plot_angle_and_count_and_stage(
         self, angle_text, count_text, stage_text, center_kpt, color=(104, 31, 17), txt_color=(255, 255, 255)
     ):
         """
-        Plot the pose angle, count value, and step stage.
+        Plot the pose angle, count value and step stage.
 
         Args:
-            angle_text (str): Angle value for workout monitoring
-            count_text (str): Counts value for workout monitoring
-            stage_text (str): Stage decision for workout monitoring
-            center_kpt (list): Centroid pose index for workout monitoring
-            color (tuple, optional): Text background color
-            txt_color (tuple, optional): Text foreground color
+            angle_text (str): angle value for workout monitoring
+            count_text (str): counts value for workout monitoring
+            stage_text (str): stage decision for workout monitoring
+            center_kpt (list): centroid pose index for workout monitoring
+            color (tuple): text background color for workout monitoring
+            txt_color (tuple): text foreground color for workout monitoring
         """
-        # Format text
-        angle_text, count_text, stage_text = f" {angle_text:.2f}", f"Steps : {count_text}", f" {stage_text}"
 
-        # Draw angle, count and stage text
-        angle_height = self.plot_workout_information(
-            angle_text, (int(center_kpt[0]), int(center_kpt[1])), color, txt_color
+        angle_text, count_text, stage_text = (f" {angle_text:.2f}", f"Steps : {count_text}", f" {stage_text}")
+
+        # Draw angle
+        (angle_text_width, angle_text_height), _ = cv2.getTextSize(angle_text, 0, self.sf, self.tf)
+        angle_text_position = (int(center_kpt[0]), int(center_kpt[1]))
+        angle_background_position = (angle_text_position[0], angle_text_position[1] - angle_text_height - 5)
+        angle_background_size = (angle_text_width + 2 * 5, angle_text_height + 2 * 5 + (self.tf * 2))
+        cv2.rectangle(
+            self.im,
+            angle_background_position,
+            (
+                angle_background_position[0] + angle_background_size[0],
+                angle_background_position[1] + angle_background_size[1],
+            ),
+            color,
+            -1,
         )
-        count_height = self.plot_workout_information(
-            count_text, (int(center_kpt[0]), int(center_kpt[1]) + angle_height + 20), color, txt_color
+        cv2.putText(self.im, angle_text, angle_text_position, 0, self.sf, txt_color, self.tf)
+
+        # Draw Counts
+        (count_text_width, count_text_height), _ = cv2.getTextSize(count_text, 0, self.sf, self.tf)
+        count_text_position = (angle_text_position[0], angle_text_position[1] + angle_text_height + 20)
+        count_background_position = (
+            angle_background_position[0],
+            angle_background_position[1] + angle_background_size[1] + 5,
         )
-        self.plot_workout_information(
-            stage_text, (int(center_kpt[0]), int(center_kpt[1]) + angle_height + count_height + 40), color, txt_color
+        count_background_size = (count_text_width + 10, count_text_height + 10 + self.tf)
+
+        cv2.rectangle(
+            self.im,
+            count_background_position,
+            (
+                count_background_position[0] + count_background_size[0],
+                count_background_position[1] + count_background_size[1],
+            ),
+            color,
+            -1,
         )
+        cv2.putText(self.im, count_text, count_text_position, 0, self.sf, txt_color, self.tf)
+
+        # Draw Stage
+        (stage_text_width, stage_text_height), _ = cv2.getTextSize(stage_text, 0, self.sf, self.tf)
+        stage_text_position = (int(center_kpt[0]), int(center_kpt[1]) + angle_text_height + count_text_height + 40)
+        stage_background_position = (stage_text_position[0], stage_text_position[1] - stage_text_height - 5)
+        stage_background_size = (stage_text_width + 10, stage_text_height + 10)
+
+        cv2.rectangle(
+            self.im,
+            stage_background_position,
+            (
+                stage_background_position[0] + stage_background_size[0],
+                stage_background_position[1] + stage_background_size[1],
+            ),
+            color,
+            -1,
+        )
+        cv2.putText(self.im, stage_text, stage_text_position, 0, self.sf, txt_color, self.tf)
 
     def seg_bbox(self, mask, mask_color=(255, 0, 255), label=None, txt_color=(255, 255, 255)):
         """
         Function for drawing segmented object in bounding box shape.
 
         Args:
-            mask (np.ndarray): A 2D array of shape (N, 2) containing the contour points of the segmented object.
-            mask_color (tuple): RGB color for the contour and label background.
-            label (str, optional): Text label for the object. If None, no label is drawn.
-            txt_color (tuple): RGB color for the label text.
+            mask (list): masks data list for instance segmentation area plotting
+            mask_color (RGB): mask foreground color
+            label (str): Detection label text
+            txt_color (RGB): text color
         """
-        if mask.size == 0:  # no masks to plot
-            return
 
         cv2.polylines(self.im, [np.int32([mask])], isClosed=True, color=mask_color, thickness=2)
+        text_size, _ = cv2.getTextSize(label, 0, self.sf, self.tf)
+
+        cv2.rectangle(
+            self.im,
+            (int(mask[0][0]) - text_size[0] // 2 - 10, int(mask[0][1]) - text_size[1] - 10),
+            (int(mask[0][0]) + text_size[0] // 2 + 10, int(mask[0][1] + 10)),
+            mask_color,
+            -1,
+        )
+
         if label:
-            text_size, _ = cv2.getTextSize(label, 0, self.sf, self.tf)
-            cv2.rectangle(
-                self.im,
-                (int(mask[0][0]) - text_size[0] // 2 - 10, int(mask[0][1]) - text_size[1] - 10),
-                (int(mask[0][0]) + text_size[0] // 2 + 10, int(mask[0][1] + 10)),
-                mask_color,
-                -1,
-            )
             cv2.putText(
                 self.im, label, (int(mask[0][0]) - text_size[0] // 2, int(mask[0][1])), 0, self.sf, txt_color, self.tf
             )
 
-    def sweep_annotator(self, line_x=0, line_y=0, label=None, color=(221, 0, 186), txt_color=(255, 255, 255)):
-        """
-        Function for drawing a sweep annotation line and an optional label.
-
-        Args:
-            line_x (int): The x-coordinate of the sweep line.
-            line_y (int): The y-coordinate limit of the sweep line.
-            label (str, optional): Text label to be drawn in center of sweep line. If None, no label is drawn.
-            color (tuple): RGB color for the line and label background.
-            txt_color (tuple): RGB color for the label text.
-        """
-        # Draw the sweep line
-        cv2.line(self.im, (line_x, 0), (line_x, line_y), color, self.tf * 2)
-
-        # Draw label, if provided
-        if label:
-            (text_width, text_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, self.sf, self.tf)
-            cv2.rectangle(
-                self.im,
-                (line_x - text_width // 2 - 10, line_y // 2 - text_height // 2 - 10),
-                (line_x + text_width // 2 + 10, line_y // 2 + text_height // 2 + 10),
-                color,
-                -1,
-            )
-            cv2.putText(
-                self.im,
-                label,
-                (line_x - text_width // 2, line_y // 2 + text_height // 2),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                self.sf,
-                txt_color,
-                self.tf,
-            )
-
-    def plot_distance_and_line(
-        self, pixels_distance, centroids, line_color=(104, 31, 17), centroid_color=(255, 0, 255)
-    ):
+    def plot_distance_and_line(self, distance_m, distance_mm, centroids, line_color, centroid_color):
         """
         Plot the distance and line on frame.
 
         Args:
-            pixels_distance (float): Pixels distance between two bbox centroids.
+            distance_m (float): Distance between two bbox centroids in meters.
+            distance_mm (float): Distance between two bbox centroids in millimeters.
             centroids (list): Bounding box centroids data.
-            line_color (tuple, optional): Distance line color.
-            centroid_color (tuple, optional): Bounding box centroid color.
+            line_color (RGB): Distance line color.
+            centroid_color (RGB): Bounding box centroid color.
         """
-        # Get the text size
-        text = f"Pixels Distance: {pixels_distance:.2f}"
-        (text_width_m, text_height_m), _ = cv2.getTextSize(text, 0, self.sf, self.tf)
 
-        # Define corners with 10-pixel margin and draw rectangle
-        cv2.rectangle(self.im, (15, 25), (15 + text_width_m + 20, 25 + text_height_m + 20), line_color, -1)
-
-        # Calculate the position for the text with a 10-pixel margin and draw text
-        text_position = (25, 25 + text_height_m + 10)
+        (text_width_m, text_height_m), _ = cv2.getTextSize(f"Distance M: {distance_m:.2f}m", 0, self.sf, self.tf)
+        cv2.rectangle(self.im, (15, 25), (15 + text_width_m + 10, 25 + text_height_m + 20), line_color, -1)
         cv2.putText(
             self.im,
-            text,
-            text_position,
+            f"Distance M: {distance_m:.2f}m",
+            (20, 50),
             0,
             self.sf,
-            (255, 255, 255),
+            centroid_color,
+            self.tf,
+            cv2.LINE_AA,
+        )
+
+        (text_width_mm, text_height_mm), _ = cv2.getTextSize(f"Distance MM: {distance_mm:.2f}mm", 0, self.sf, self.tf)
+        cv2.rectangle(self.im, (15, 75), (15 + text_width_mm + 10, 75 + text_height_mm + 20), line_color, -1)
+        cv2.putText(
+            self.im,
+            f"Distance MM: {distance_mm:.2f}mm",
+            (20, 100),
+            0,
+            self.sf,
+            centroid_color,
             self.tf,
             cv2.LINE_AA,
         )
@@ -894,6 +2066,7 @@ class Annotator:
             color (tuple): object centroid and line color value
             pin_color (tuple): visioneye point color value
         """
+
         center_bbox = int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)
         cv2.circle(self.im, center_point, self.tf * 2, pin_color, -1)
         cv2.circle(self.im, center_bbox, self.tf * 2, color, -1)
@@ -1020,6 +2193,7 @@ def plot_images(
     max_subplots: int = 16,
     save: bool = True,
     conf_thres: float = 0.25,
+    use_simotm="RGBT",
 ) -> Optional[np.ndarray]:
     """
     Plot image grid with labels, bounding boxes, masks, and keypoints.
@@ -1069,9 +2243,17 @@ def plot_images(
 
     # Build Image
     mosaic = np.full((int(ns * h), int(ns * w), 3), 255, dtype=np.uint8)  # init
+    # for i in range(bs):
+    #     x, y = int(w * (i // ns)), int(h * (i % ns))  # block origin
+    #     mosaic[y : y + h, x : x + w, :] = images[i].transpose(1, 2, 0)
     for i in range(bs):
         x, y = int(w * (i // ns)), int(h * (i % ns))  # block origin
-        mosaic[y : y + h, x : x + w, :] = images[i].transpose(1, 2, 0)
+        im=images[i]
+        if (im.shape[0] == 4 or im.shape[0] == 6):
+            im = im.transpose(1, 2, 0)[:, :, :3]
+        else:
+            im = im.transpose(1, 2, 0)
+        mosaic[y:y + h, x:x + w, :] = im
 
     # Resize (optional)
     scale = max_size / ns / max(h, w)
@@ -1082,7 +2264,7 @@ def plot_images(
 
     # Annotate
     fs = int((h + w) * ns * 0.01)  # font size
-    annotator = Annotator(mosaic, line_width=round(fs / 10), font_size=fs, pil=True, example=names)
+    annotator = Annotator(mosaic, line_width=round(fs / 10), font_size=fs, pil=True, example=names,use_simotm=use_simotm)
     for i in range(bs):
         x, y = int(w * (i // ns)), int(h * (i % ns))  # block origin
         annotator.rectangle([x, y, x + w, y + h], None, (255, 255, 255), width=2)  # borders
@@ -1112,7 +2294,7 @@ def plot_images(
                     c = names.get(c, c) if names else c
                     if labels or conf[j] > conf_thres:
                         label = f"{c}" if labels else f"{c} {conf[j]:.1f}"
-                        annotator.box_label(box, label, color=color, rotated=is_obb)
+                        annotator.box_label(box, label, color=color, rotated=is_obb,training=True)
 
             elif len(classes):
                 for c in classes:
