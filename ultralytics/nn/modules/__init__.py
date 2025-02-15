@@ -73,8 +73,12 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,Silence,SilenceChannel,ChannelToNumber,NumberToChannel,
+
 )
-from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect
+
+from .rep_block import  DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock,FeaturePyramidAggregationAttention,SilenceLayer
+
+from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect, DetectDeepDBB, DetectWDBB
 from .transformer import (
     AIFI,
     MLP,
@@ -160,5 +164,5 @@ __all__ = (
     "PSA",
     "TorchVision",
     "Index", 'Silence','SilenceChannel','ChannelToNumber','NumberToChannel',
-
+    'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention','SilenceLayer',
 )
