@@ -34,33 +34,20 @@ backbone:
   - [-1, 1, SPPELAN, [256, 128]] # 22
 
 head:
-  - [11, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 8], 1, Concat, [1]] # cat backbone P4
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 22], 1, Concat, [1]] # cat backbone P4
   - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 27
 
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 6], 1, Concat, [1]] # cat backbone P3
+  - [[-1, 23], 1, Concat, [1]] # cat backbone P3
   - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 30
 
-
-  - [22, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 19], 1, Concat, [1]] # cat backbone P4
-  - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 33
-
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 17], 1, Concat, [1]] # cat backbone P3
-  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 36
-
-  - [ [ 11, 22 ], 1, Concat, [ 1 ] ]  # cat head P5  37
-  - [ [ 27, 33 ], 1, Concat, [ 1 ] ]  # cat head P5  38
-  - [ [ 30, 36 ], 1, Concat, [ 1 ] ]  # cat head P5  39
-
   - [-1, 1, AConv, [96]]
-  - [[-1, 38], 1, Concat, [1]] # cat head P4   41
-  - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 42 (P4/16-medium)
+  - [[-1, 27], 1, Concat, [1]] # cat head P4
+  - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 33 (P4/16-medium)
 
   - [-1, 1, AConv, [128]]
-  - [[-1, 37], 1, Concat, [1]] # cat head P5
-  - [-1, 1, RepNCSPELAN4, [256, 256, 128, 3]] # 45 (P5/32-large)
+  - [[-1, 24], 1, Concat, [1]] # cat head P5
+  - [-1, 1, RepNCSPELAN4, [256, 256, 128, 3]] # 36 (P5/32-large)
 
-  - [[39, 42, 45], 1, Detect, [nc]] # Detect(P3, P4 P5)
+  - [[30, 33, 36], 1, Detect, [nc]] # Detect(P3, P4 P5)
