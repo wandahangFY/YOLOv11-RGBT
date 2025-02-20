@@ -3,7 +3,7 @@
 # Ultralytics YOLO11 object detection model with P3/8 - P5/32 outputs
 # Model docs: https://docs.ultralytics.com/models/yolo11
 # Task docs: https://docs.ultralytics.com/tasks/detect
-ch: 3
+ch: 1
 # Parameters
 nc: 80 # number of classes
 scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
