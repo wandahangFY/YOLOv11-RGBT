@@ -26,7 +26,7 @@ from .block import (
     CIB,
     DFL,
     ELAN1,
-    PSA,
+    PSA,CrossAttentionShared, CrossMLCA , TensorSelector,
     SPP,
     SPPELAN,
     SPPF,
@@ -165,4 +165,5 @@ __all__ = (
     "TorchVision",
     "Index", 'Silence','SilenceChannel','ChannelToNumber','NumberToChannel',
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention','SilenceLayer',
+    "CrossAttentionShared","CrossMLCA","TensorSelector",
 )

@@ -9,6 +9,7 @@ from ultralytics.utils.torch_utils import fuse_conv_and_bn
 
 from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad
 from .transformer import TransformerBlock
+import math
 
 __all__ = (
     "DFL",
@@ -50,6 +51,7 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
+    "CrossAttentionShared","CrossMLCA","TensorSelector"
 )
 
 
@@ -1154,3 +1156,226 @@ class TorchVision(nn.Module):
         else:
             y = self.m(x)
         return y
+
+
+
+class CrossAttentionShared(nn.Module):
+    """
+    Cross-Attention module with weight sharing and additional projection for combined output.
+    Both x1 and x2 use the same convolutional layers to generate Query, Key, and Value.
+    An additional projection layer combines x1_out and x2_out into a shared output x_out_all.
+
+    Args:
+        dim (int): The input tensor dimension.
+        num_heads (int): The number of attention heads.
+        attn_ratio (float): The ratio of the attention key dimension to the head dimension.
+
+    Attributes:
+        num_heads (int): The number of attention heads.
+        head_dim (int): The dimension of each attention head.
+        key_dim (int): The dimension of the attention key.
+        scale (float): The scaling factor for the attention scores.
+        qkv (Conv): Convolutional layer for computing the query, key, and value.
+        proj (Conv): Convolutional layer for projecting the attended values of x1 and x2.
+        proj_all (Conv): Convolutional layer for projecting the combined output of x1_out and x2_out.
+        pe (Conv): Convolutional layer for positional encoding.
+    """
+
+    def __init__(self, dim, num_heads=8, attn_ratio=0.5):
+        """Initializes cross-attention module with shared query, key, and value convolutions and positional encoding."""
+        super().__init__()
+        # print(dim, num_heads , attn_ratio )
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.key_dim = int(self.head_dim * attn_ratio)
+        self.scale = self.key_dim ** -0.5
+        nh_kd = self.key_dim * num_heads
+        h = self.head_dim * num_heads
+
+        # Shared convolutional layer for Query, Key, and Value
+        self.qkv = nn.Conv2d(dim, nh_kd * 2 + h, kernel_size=1, bias=False)
+        # Shared projection layer for individual outputs
+        self.proj = nn.Conv2d(dim, dim, kernel_size=1, bias=False)
+        # Additional projection layer for combined output
+        self.proj_all = nn.Conv2d(dim * 2, dim, kernel_size=1, bias=False)
+        # Shared positional encoding layer
+        self.pe = nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim, bias=False)
+
+    def forward(self,x):
+        """
+        Forward pass of the Cross-Attention module.
+
+        Args:
+            x1 (torch.Tensor): The first input tensor.
+            x2 (torch.Tensor): The second input tensor.
+
+        Returns:
+            tuple: A tuple containing the output tensors after cross-attention for x1, x2, and the combined output.
+        """
+        # print(len(x))
+        x1 = x[0]  # 第一个输入张量
+        x2 = x[1]  # 第二个输入张量
+        B, C, H, W = x1.shape
+        N = H * W
+
+        # Compute Query, Key, and Value for x1
+        qkv1 = self.qkv(x1).view(B, self.num_heads, self.key_dim * 2 + self.head_dim, N)
+        q1, k1, v1 = qkv1.split([self.key_dim, self.key_dim, self.head_dim], dim=2)
+
+        # Compute Query, Key, and Value for x2
+        qkv2 = self.qkv(x2).view(B, self.num_heads, self.key_dim * 2 + self.head_dim, N)
+        q2, k2, v2 = qkv2.split([self.key_dim, self.key_dim, self.head_dim], dim=2)
+
+        # Compute attention scores for x1 attending to x2
+        attn1 = (q1.transpose(-2, -1) @ k2) * self.scale
+        attn1 = attn1.softmax(dim=-1)
+        x1_out = (v2 @ attn1.transpose(-2, -1)).view(B, C, H, W)
+
+        # Compute attention scores for x2 attending to x1
+        attn2 = (q2.transpose(-2, -1) @ k1) * self.scale
+        attn2 = attn2.softmax(dim=-1)
+        x2_out = (v1 @ attn2.transpose(-2, -1)).view(B, C, H, W)
+
+        # Add positional encoding
+        x1_out = x1_out + self.pe(x1_out)
+        x2_out = x2_out + self.pe(x2_out)
+
+        # Project the individual outputs
+        x1_out = self.proj(x1_out)
+        x2_out = self.proj(x2_out)
+
+        x1_out = x1_out + x1
+        x2_out = x2_out + x2
+        # Combine x1_out and x2_out and project to a shared output
+        x_out_all = self.proj_all(torch.cat([x1_out, x2_out], dim=1))
+
+        # return [x1_out, x2_out, x_out_all]
+
+        return   x_out_all
+
+
+
+class TensorSelector(nn.Module):
+    """
+    A module that selects a specific tensor from a list of tensors based on a fixed index.
+
+    Args:
+        index (int): The fixed index of the tensor to be selected.
+    """
+    def __init__(self, index):
+        super(TensorSelector, self).__init__()
+        self.index = index
+
+    def forward(self, tensors):
+        """
+        Forward pass of the TensorSelector module.
+
+        Args:
+            tensors (list of torch.Tensor): A list of tensors from which to select.
+
+        Returns:
+            torch.Tensor: The selected tensor based on the fixed index.
+        """
+        if not isinstance(tensors, list) or not all(isinstance(t, torch.Tensor) for t in tensors):
+            raise TypeError("Input must be a list of torch.Tensor.")
+        if self.index < 0 or self.index >= len(tensors):
+            raise IndexError("Index out of range.")
+        return tensors[self.index]
+
+class CrossMLCA(nn.Module):
+    """
+    Modified Local Channel Attention (MLCA) module with cross-attention mechanism.
+    Global features of x1 interact with local features of x2, and vice versa.
+    """
+    def __init__(self, dim, num_heads=8, attn_ratio=0.5, local_size=5, gamma=2, b=1):
+        super(CrossMLCA, self).__init__()
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.key_dim = int(self.head_dim * attn_ratio)
+        self.scale = self.key_dim ** -0.5
+        nh_kd = self.key_dim * num_heads
+        h = dim + nh_kd * 2
+
+        # Convolutional layer for computing Q, K, V for global features
+        self.qkv_global = Conv(dim, h, k=1, act=False)
+        self.proj_global = Conv(dim, dim, k=1, act=False)
+
+        # Local average pooling for generating local features (used as positional encoding)
+        self.local_avg_pool = nn.AdaptiveAvgPool2d(local_size)
+
+        # ECA-like mechanism for local features
+        t = int(abs(math.log(dim, 2) + b) / gamma)
+        k = t if t % 2 else t + 1
+        self.conv_local = nn.Conv1d(1, 1, kernel_size=k, padding=(k - 1) // 2, bias=False)
+
+        self.combined_conv = Conv(dim * 2, dim, k=1, act=True)
+    def forward(self, x):
+        x1, x2 = x  # 解包输入张量 x = (x1, x2)
+
+        # Process x1 (global features)
+        B, C, H, W = x1.shape
+        N = H * W
+
+        # Global features of x1: compute Q, K, V
+        qkv_global_x1 = self.qkv_global(x1)  # Shape: (B, C + 2 * nh_kd, H, W)
+        q_x1, k_x1, v_x1 = qkv_global_x1.view(B, self.num_heads, self.key_dim * 2 + self.head_dim, N).split(
+            [self.key_dim, self.key_dim, self.head_dim], dim=2
+        )
+
+        # Compute attention scores for global features of x1
+        attn_x1 = (q_x1.transpose(-2, -1) @ k_x1) * self.scale  # Shape: (B, num_heads, N, N)
+        attn_x1 = attn_x1.softmax(dim=-1)
+
+        # Apply attention to V for global features of x1
+        attended_v_global_x1 = (v_x1 @ attn_x1.transpose(-2, -1)).view(B, C, H, W)  # Shape: (B, C, H, W)
+        global_features_x1 = self.proj_global(attended_v_global_x1)  # Project global features of x1
+
+        # Process x2 (local features)
+        local_features_x2 = self.local_avg_pool(x2)  # Shape: (B, C, local_size, local_size)
+        B_local, C_local, H_local, W_local = local_features_x2.shape
+        N_local = H_local * W_local
+
+        # Flatten and apply ECA-like mechanism to local features of x2
+        temp_local_x2 = local_features_x2.view(B_local, C_local, -1).transpose(-1, -2).reshape(B_local, 1, -1)  # Shape: (B, 1, C * local_size^2)
+        local_att_x2 = self.conv_local(temp_local_x2)  # Shape: (B, 1, C * local_size^2)
+        local_att_x2 = local_att_x2.view(B_local, -1, C_local).transpose(-1, -2).view(B_local, C_local, H_local, W_local)  # Restore shape
+
+        # Upsample local features of x2 to original size
+        local_att_x2 = F.interpolate(local_att_x2, size=(H, W), mode='nearest')
+
+        # Combine global features of x1 with local features of x2
+        output1 = (global_features_x1 + local_att_x2) * x1 + x1
+
+        #############################################################################
+
+        # Process x2 (global features)
+        qkv_global_x2 = self.qkv_global(x2)  # Shape: (B, C + 2 * nh_kd, H, W)
+        q_x2, k_x2, v_x2 = qkv_global_x2.view(B, self.num_heads, self.key_dim * 2 + self.head_dim, N).split(
+            [self.key_dim, self.key_dim, self.head_dim], dim=2
+        )
+
+        # Compute attention scores for global features of x2
+        attn_x2 = (q_x2.transpose(-2, -1) @ k_x2) * self.scale  # Shape: (B, num_heads, N, N)
+        attn_x2 = attn_x2.softmax(dim=-1)
+
+        # Apply attention to V for global features of x2
+        attended_v_global_x2 = (v_x2 @ attn_x2.transpose(-2, -1)).view(B, C, H, W)  # Shape: (B, C, H, W)
+        global_features_x2 = self.proj_global(attended_v_global_x2)  # Project global features of x2
+
+        # Process x1 (local features)
+        local_features_x1 = self.local_avg_pool(x1)  # Shape: (B, C, local_size, local_size)
+        temp_local_x1 = local_features_x1.view(B_local, C_local, -1).transpose(-1, -2).reshape(B_local, 1, -1)  # Shape: (B, 1, C * local_size^2)
+        local_att_x1 = self.conv_local(temp_local_x1)  # Shape: (B, 1, C * local_size^2)
+        local_att_x1 = local_att_x1.view(B_local, -1, C_local).transpose(-1, -2).view(B_local, C_local, H_local, W_local)  # Restore shape
+        local_att_x1 = F.interpolate(local_att_x1, size=(H, W), mode='nearest')
+
+        # Combine global features of x2 with local features of x1
+        output2 = (global_features_x2 + local_att_x1) * x2 + x2
+
+        # Concatenate output1 and output2
+        combined_output = torch.cat([output1, output2], dim=1)  # Shape: (B, 2*C, H, W)
+
+        # Process the combined output through a convolutional layer
+        final_output = self.combined_conv(combined_output)  # Shape: (B, C, H, W)
+        return [output1, output2,final_output]
+        # return  final_output

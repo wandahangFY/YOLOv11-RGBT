@@ -19,7 +19,7 @@ from ultralytics.nn.modules import (
     C3TR,
     ELAN1,
     OBB,
-    PSA,
+    PSA,CrossAttentionShared,CrossMLCA,TensorSelector,
     SPP,
     SPPELAN,
     SPPF,
@@ -1046,6 +1046,23 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [ch[f]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
+        elif m is CrossAttentionShared:
+            c2 =  args[0]
+            if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [c2]
+        elif m is CrossMLCA:
+            c2 = args[0]
+            if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [c2]
+        elif m is TensorSelector:
+            c2 = args[1]
+            if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [args[0]]
+            n = 1
+            # print(args,c2)
         elif m in frozenset({Detect,DetectDeepDBB,DetectWDBB, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect}):
             args.append([ch[x] for x in f])
             if m is Segment:
