@@ -9,7 +9,7 @@ ch: 4
 # GELAN backbone
 backbone:
   - [ -1, 1, Silence, [ ] ]  # 0-P1/2
-  - [ 0, 1, SilenceChannel, [ 0,4 ] ]  # 0-P1/2
+  - [ 0, 1, SilenceChannel, [ 0,4 ] ]  # 1-P1/2
   - [-1, 1, Conv, [32, 3, 2]] # 2-P1/2
   - [-1, 1, Conv, [64, 3, 2]] # 3-P2/4
   - [-1, 1, ELAN1, [64, 64, 32]] # 4
@@ -28,14 +28,14 @@ head:
 
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
   - [[-1, 6], 1, Concat, [1]] # cat backbone P3
-  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 15
+  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 17
 
   - [-1, 1, AConv, [96]]
   - [[-1, 14], 1, Concat, [1]] # cat head P4
-  - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 18 (P4/16-medium)
+  - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 20 (P4/16-medium)
 
   - [-1, 1, AConv, [128]]
   - [[-1, 11], 1, Concat, [1]] # cat head P5
-  - [-1, 1, RepNCSPELAN4, [256, 256, 128, 3]] # 21 (P5/32-large)
+  - [-1, 1, RepNCSPELAN4, [256, 256, 128, 3]] # 23 (P5/32-large)
 
   - [[17, 20, 23], 1, Detect, [nc]] # Detect(P3, P4 P5)
