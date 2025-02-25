@@ -3,13 +3,13 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO('ultralytics/cfg/models/11-RGBT/yolo11-RGBT-latefusion.yaml')
+    model = YOLO('ultralytics/cfg/models/v10/yolov10n.yaml')
     # model.load('yolov8n.pt') # loading pretrain weights
     model.train(data=R'ultralytics/cfg/datasets/M3FD.yaml',
                 cache=False,
                 imgsz=640,
                 epochs=300,
-                batch=32,
+                batch=16,
                 close_mosaic=0,
                 workers=2,
                 device='0',
@@ -17,8 +17,8 @@ if __name__ == '__main__':
                 # resume='', # last.pt path
                 # amp=False, # close amp
                 # fraction=0.2,
-                use_simotm="RGBT",
-                channels=4,
+                use_simotm="RGB",
+                channels=3,
                 project='runs/M3FD',
-                name='M3FD-yolo11-RGBT-latefusion',
+                name='M3FD-yolov10n-RGB',
                 )

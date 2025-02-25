@@ -3499,6 +3499,7 @@ class RandomHSV4C:
     def __call__(self, labels):
         """Applies image HSV augmentation"""
         img = labels['img']
+        # print("img.shape=",img.shape)
         gray = img[:, :, 3]  # Extract the grayscale channel from the 4th channel
         bgr = img[:, :, :3]  # Extract the BGR channels
         if self.hgain or self.sgain or self.vgain:
@@ -3626,7 +3627,7 @@ class Albumentations4C:
             labels['instances'].update(bboxes=bboxes)
         return labels
 
-def v8_transforms(dataset, imgsz, hyp):
+def v8_transforms(dataset, imgsz, hyp,stretch=False):
     """Convert images to a size suitable for YOLOv8 training."""
     dtype=np.uint8 if hyp.use_simotm!="Gray16bit" else np.float32
     pre_transform = Compose([
@@ -3638,7 +3639,8 @@ def v8_transforms(dataset, imgsz, hyp):
             scale=hyp.scale,
             shear=hyp.shear,
             perspective=hyp.perspective,
-            pre_transform=LetterBox(new_shape=(imgsz, imgsz)),
+            # pre_transform=LetterBox(new_shape=(imgsz, imgsz)),
+            pre_transform=None if stretch else LetterBox(new_shape=(imgsz, imgsz)),
         )])
     flip_idx = dataset.data.get('flip_idx', None)  # for keypoints augmentation
     if dataset.use_keypoints:
