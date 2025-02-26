@@ -51,7 +51,7 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
-    "CrossAttentionShared","CrossMLCA","TensorSelector"
+    "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",
 )
 
 
@@ -1379,3 +1379,111 @@ class CrossMLCA(nn.Module):
         final_output = self.combined_conv(combined_output)  # Shape: (B, C, H, W)
         return [output1, output2,final_output]
         # return  final_output
+
+
+
+
+class ChannelCompressAndExpand(nn.Module):
+    def __init__(self, k):
+        super(ChannelCompressAndExpand, self).__init__()
+        # 1x1卷积层，用于压缩和扩展特征
+        out_channels = k * k
+        self.k = k
+
+        self.conv1x1 = nn.Conv1d(out_channels * 2, out_channels, kernel_size=1)
+        # 全局平均池化层，将通道数压缩到1
+        self.global_avg_pool = nn.AdaptiveAvgPool2d((k, k))
+
+    def forward(self, x):
+        # x的形状应该是 (batch_size, C, k, k)
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+
+        # 使用全局平均池化将通道数压缩到1
+        x_flat_avg = avg_out.view(-1, self.k * self.k)
+        x_flat_max = max_out.view(-1, self.k * self.k)
+        x_flat = torch.cat([x_flat_avg, x_flat_max], dim=1)
+        x_flat = x_flat.unsqueeze(-1)  # 在最后一维扩展一个新的维度
+        avg_out_convoluted = self.conv1x1(x_flat)
+        # 使用 view 将卷积后的输出调整为 (batch_size, out_channels, k, k)
+        output = avg_out_convoluted.view(avg_out_convoluted.size(0), -1, x.size(2), x.size(3))
+
+        return output
+
+
+class CrossMLCAv2(nn.Module):
+    def __init__(self, in_size, local_size=5, gamma=2, b=1, local_weight=0.5):
+        super(CrossMLCAv2, self).__init__()
+
+        # ECA 计算方法
+        self.local_size = local_size
+        self.gamma = gamma
+        self.b = b
+        t = int(abs(math.log(in_size, 2) + self.b) / self.gamma)  # eca  gamma=2
+        k = t if t % 2 else t + 1
+
+        self.conv = nn.Conv1d(1, 1, kernel_size=k, padding=(k - 1) // 2, bias=False)
+        self.conv_local = nn.Conv1d(1, 1, kernel_size=k, padding=(k - 1) // 2, bias=False)
+
+        self.local_weight = local_weight
+
+        self.local_arv_pool = nn.AdaptiveAvgPool2d(local_size)
+        self.global_arv_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv_cae = ChannelCompressAndExpand(local_size)
+        # 新增卷积层，用于合并 x1 和 x2，输出通道数降低一半
+        self.merge_conv = nn.Conv2d(in_channels=in_size * 2, out_channels=in_size, kernel_size=1, bias=False)
+
+    def forward(self, x):
+        x1, x2=x
+        # 处理 x1 和 x2 的局部和全局信息
+        local_arv1 = self.local_arv_pool(x1)
+        global_arv1 = self.global_arv_pool(local_arv1)
+        local_arv2 = self.local_arv_pool(x2)
+        global_arv2 = self.global_arv_pool(local_arv2)
+
+        b, c, m, n = x1.shape
+        b_local, c_local, m_local, n_local = local_arv1.shape
+
+        # 共用 conv_cae
+        spatial_info_local1 = self.conv_cae(local_arv1)
+        spatial_info_local2 = self.conv_cae(local_arv2)
+
+        # 处理局部信息
+        temp_local1 = local_arv1.view(b, c_local, -1).transpose(-1, -2).reshape(b, 1, -1)
+        temp_local2 = local_arv2.view(b, c_local, -1).transpose(-1, -2).reshape(b, 1, -1)
+        temp_global1 = global_arv1.view(b, c, -1).transpose(-1, -2)
+        temp_global2 = global_arv2.view(b, c, -1).transpose(-1, -2)
+
+        y_local1 = self.conv_local(temp_local1)
+        y_global1 = self.conv(temp_global1)
+        y_local2 = self.conv_local(temp_local2)
+        y_global2 = self.conv(temp_global2)
+
+        # 转换形状
+        y_local_transpose1 = y_local1.reshape(b, self.local_size * self.local_size, c).transpose(-1, -2).view(b, c, self.local_size, self.local_size)
+        y_global_transpose1 = y_global1.view(b, -1).transpose(-1, -2).unsqueeze(-1)
+        y_local_transpose2 = y_local2.reshape(b, self.local_size * self.local_size, c).transpose(-1, -2).view(b, c, self.local_size, self.local_size)
+        y_global_transpose2 = y_global2.view(b, -1).transpose(-1, -2).unsqueeze(-1)
+
+        # 应用空间信息
+        y_local_transpose1 = spatial_info_local1 * y_local_transpose1
+        y_local_transpose2 = spatial_info_local2 * y_local_transpose2
+
+        # 计算注意力
+        att_local1 = y_local_transpose1.sigmoid()
+        att_global1 = F.adaptive_avg_pool2d(y_global_transpose1.sigmoid(), [self.local_size, self.local_size])
+        att_all1 = F.adaptive_avg_pool2d(att_global1 * (1 - self.local_weight) + (att_local1 * self.local_weight), [m, n])
+
+        att_local2 = y_local_transpose2.sigmoid()
+        att_global2 = F.adaptive_avg_pool2d(y_global_transpose2.sigmoid(), [self.local_size, self.local_size])
+        att_all2 = F.adaptive_avg_pool2d(att_global2 * (1 - self.local_weight) + (att_local2 * self.local_weight), [m, n])
+
+        # 应用注意力
+        x1 = x1 * att_all1 +x1
+        x2 = x2 * att_all2 +x2
+
+        # 合并 x1 和 x2 并通过卷积降低通道数
+        merged = torch.cat([x1, x2], dim=1)  # 合并通道
+        output = self.merge_conv(merged)  # 通道数降低一半
+
+        return [x1, x2,output]

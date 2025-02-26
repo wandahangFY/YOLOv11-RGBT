@@ -435,15 +435,59 @@ class BasePredictor:
             # cv2.imwrite(str(Path(save_path).with_suffix(".jpg")), im)  # save to JPG for best support
             self.save_image_mutichannel(im, str(Path(save_path).with_suffix(".jpg")))
 
+    # def show(self, p=""):
+    #     """Display an image in a window using the OpenCV imshow function."""
+    #     im = self.plotted_img
+    #     if platform.system() == "Linux" and p not in self.windows:
+    #         self.windows.append(p)
+    #         cv2.namedWindow(p, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
+    #         cv2.resizeWindow(p, im.shape[1], im.shape[0])  # (width, height)
+    #     cv2.imshow(p, im)
+    #     cv2.waitKey(300 if self.dataset.mode == "image" else 1)  # 1 millisecond
+
     def show(self, p=""):
-        """Display an image in a window using the OpenCV imshow function."""
+        """Display an image in a window using OpenCV imshow()."""
         im = self.plotted_img
-        if platform.system() == "Linux" and p not in self.windows:
-            self.windows.append(p)
-            cv2.namedWindow(p, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
-            cv2.resizeWindow(p, im.shape[1], im.shape[0])  # (width, height)
-        cv2.imshow(p, im)
-        cv2.waitKey(300 if self.dataset.mode == "image" else 1)  # 1 millisecond
+        channels = im.shape[2] if len(im.shape) == 3 else 1  # 获取通道数
+        try:
+            if channels  in [1, 3]:  # 如果是3通道图像，直接显示
+                if platform.system() == "Linux" and p not in self.windows:
+                    self.windows.append(p)
+                    cv2.namedWindow(p, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
+                    cv2.resizeWindow(p, im.shape[1], im.shape[0])  # (width, height)
+                cv2.imshow(p, im)
+                cv2.waitKey(300 if self.dataset.mode == "image" else 1)  # 1 millisecond
+
+            elif channels in [4, 6]:  # 如果是4通道或6通道图像，分离显示
+                if channels == 4:
+                    im_rgb = im[:, :, :3]  # 前三个通道
+                    im_extra = im[:, :, 3:4]  # 第四个通道
+                elif channels == 6:
+                    im_rgb = im[:, :, :3]  # 前三个通道
+                    im_extra = im[:, :, 3:6]  # 后三个通道
+
+                # 显示前三个通道
+                window_name_rgb = f"{p}_RGB"
+                if platform.system() == "Linux" and window_name_rgb not in self.windows:
+                    self.windows.append(window_name_rgb)
+                    cv2.namedWindow(window_name_rgb, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+                    cv2.resizeWindow(window_name_rgb, im_rgb.shape[1], im_rgb.shape[0])
+                cv2.imshow(window_name_rgb, im_rgb)
+
+                # 显示额外的通道
+                window_name_extra = f"{p}_Extra"
+                if platform.system() == "Linux" and window_name_extra not in self.windows:
+                    self.windows.append(window_name_extra)
+                    cv2.namedWindow(window_name_extra, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+                    cv2.resizeWindow(window_name_extra, im_extra.shape[1], im_extra.shape[0])
+                cv2.imshow(window_name_extra, im_extra)
+
+                cv2.waitKey(300 if self.dataset.mode == "image" else 1)  # 1 millisecond
+
+            else:  # 如果通道数不符合预期，打印警告信息
+                print(f"Warning: Image with {channels} channels is not supported for display.")
+        except:
+            print(f"Warning: Image with {channels} channels is not supported for display.")
 
     def run_callbacks(self, event: str):
         """Runs all registered callbacks for a specific event."""
