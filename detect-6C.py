@@ -8,7 +8,7 @@ if __name__ == '__main__':
                   imgsz=640,
                   project='runs/detect',
                   name='exp',
-                  show=True,
+                  show=False,
                   save_frames=True,
                   use_simotm="RGBRGB6C",
                   channels=6,
