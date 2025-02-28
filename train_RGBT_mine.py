@@ -3,7 +3,7 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO('ultralytics/cfg/models/11-RGBT/yolo11-RGBT-midfusion.yaml')
+    model = YOLO('ultralytics/cfg/models/v8-RGBT/yolov8-RGBT-midfusion.yaml')
     # model.load('yolov8n.pt') # loading pretrain weights
     model.train(data=R'ultralytics/cfg/datasets/M3FD.yaml',
                 cache=False,
@@ -11,7 +11,7 @@ if __name__ == '__main__':
                 epochs=300,
                 batch=16,
                 close_mosaic=0,
-                workers=2,
+                workers=4,
                 device='0',
                 optimizer='SGD',  # using SGD
                 # resume='', # last.pt path
@@ -20,5 +20,5 @@ if __name__ == '__main__':
                 use_simotm="RGBT",
                 channels=4,
                 project='runs/M3FD',
-                name='M3FD-yolo11-RGBT-midfusion-16-',
+                name='M3FD-yolov8-RGBT-midfusion-e300-16-',
                 )

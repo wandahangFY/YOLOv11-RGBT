@@ -71,9 +71,12 @@ head:
   - [-1, 1, Conv, [128, 3, 1]]
   - [-1, 9, Conv, [128, 3, 1]] # 42
 
-  - [ [ 11, 22 ], 1, Concat, [ 1 ] ]  # cat head P5  43
-  - [ [ 27, 37 ], 1, Concat, [ 1 ] ]  # cat head P5  44
+  - [ [ 23, 33 ], 1, Concat, [ 1 ] ]  # cat head P5  43
+  - [ [ 28, 38 ], 1, Concat, [ 1 ] ]  # cat head P5  44
   - [ [ 32, 42 ], 1, Concat, [ 1 ] ]  # cat head P5  45
+
+
+
 
   - [-1, 1, Conv, [128, 3, 2]]
   - [[-1, 44], 1, Concat, [1]] # cat head P4

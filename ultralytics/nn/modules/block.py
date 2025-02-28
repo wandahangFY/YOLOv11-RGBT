@@ -10,7 +10,7 @@ from ultralytics.utils.torch_utils import fuse_conv_and_bn
 from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad
 from .transformer import TransformerBlock
 import math
-
+from .rep_block import  DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock,FeaturePyramidAggregationAttention
 __all__ = (
     "DFL",
     "HGBlock",
@@ -52,6 +52,8 @@ __all__ = (
     "SCDown",
     "TorchVision",
     "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",
+    'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention',
+    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",
 )
 
 
@@ -1487,3 +1489,64 @@ class CrossMLCAv2(nn.Module):
         output = self.merge_conv(merged)  # 通道数降低一半
 
         return [x1, x2,output]
+
+
+
+
+######################################## C2f-DDB begin ########################################
+
+class Bottleneck_DBB(Bottleneck):
+    def __init__(self, c1, c2, shortcut=True, g=1, k=(3, 3), e=0.5):
+        super().__init__(c1, c2, shortcut, g, k, e)
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = DiverseBranchBlock(c1, c_, k[0], 1)
+        self.cv2 = DiverseBranchBlock(c_, c2, k[1], 1, groups=g)
+
+class C3k_DBB(C3k):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, k=3):
+        super().__init__(c1, c2, n, shortcut, g, e, k)
+        c_ = int(c2 * e)  # hidden channels
+        self.m = nn.Sequential(*(Bottleneck_DBB(c_, c_, shortcut, g, k=(k, k), e=1.0) for _ in range(n)))
+
+class C3k2_DBB(C3k2):
+    def __init__(self, c1, c2, n=1, c3k=False, e=0.5, g=1, shortcut=True):
+        super().__init__(c1, c2, n, c3k, e, g, shortcut)
+        self.m = nn.ModuleList(C3k_DBB(self.c, self.c, 2, shortcut, g) if c3k else Bottleneck_DBB(self.c, self.c, shortcut, g) for _ in range(n))
+
+class Bottleneck_WDBB(Bottleneck):
+    def __init__(self, c1, c2, shortcut=True, g=1, k=(3, 3), e=0.5):
+        super().__init__(c1, c2, shortcut, g, k, e)
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = WideDiverseBranchBlock(c1, c_, k[0], 1)
+        self.cv2 = WideDiverseBranchBlock(c_, c2, k[1], 1, groups=g)
+
+class C3k_WDBB(C3k):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, k=3):
+        super().__init__(c1, c2, n, shortcut, g, e, k)
+        c_ = int(c2 * e)  # hidden channels
+        self.m = nn.Sequential(*(Bottleneck_WDBB(c_, c_, shortcut, g, k=(k, k), e=1.0) for _ in range(n)))
+
+class C3k2_WDBB(C3k2):
+    def __init__(self, c1, c2, n=1, c3k=False, e=0.5, g=1, shortcut=True):
+        super().__init__(c1, c2, n, c3k, e, g, shortcut)
+        self.m = nn.ModuleList(C3k_WDBB(self.c, self.c, 2, shortcut, g) if c3k else Bottleneck_WDBB(self.c, self.c, shortcut, g) for _ in range(n))
+
+class Bottleneck_DeepDBB(Bottleneck):
+    def __init__(self, c1, c2, shortcut=True, g=1, k=(3, 3), e=0.5):
+        super().__init__(c1, c2, shortcut, g, k, e)
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = DeepDiverseBranchBlock(c1, c_, k[0], 1)
+        self.cv2 = DeepDiverseBranchBlock(c_, c2, k[1], 1, groups=g)
+
+class C3k_DeepDBB(C3k):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, k=3):
+        super().__init__(c1, c2, n, shortcut, g, e, k)
+        c_ = int(c2 * e)  # hidden channels
+        self.m = nn.Sequential(*(Bottleneck_DeepDBB(c_, c_, shortcut, g, k=(k, k), e=1.0) for _ in range(n)))
+
+class C3k2_DeepDBB(C3k2):
+    def __init__(self, c1, c2, n=1, c3k=False, e=0.5, g=1, shortcut=True):
+        super().__init__(c1, c2, n, c3k, e, g, shortcut)
+        self.m = nn.ModuleList(C3k_DeepDBB(self.c, self.c, 2, shortcut, g) if c3k else Bottleneck_DeepDBB(self.c, self.c, shortcut, g) for _ in range(n))
+
+######################################## C2f-DDB end ########################################
