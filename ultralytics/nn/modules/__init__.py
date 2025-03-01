@@ -26,7 +26,7 @@ from .block import (
     CIB,
     DFL,
     ELAN1,
-    PSA,CrossAttentionShared, CrossMLCA , TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,
+    PSA,CrossAttentionShared, CrossMLCA , TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,
     SPP,
     SPPELAN,
     SPPF,
@@ -78,7 +78,7 @@ from .conv import (
 
 from .rep_block import  DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock,FeaturePyramidAggregationAttention,SilenceLayer
 
-from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect, DetectDeepDBB, DetectWDBB
+from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect, DetectDeepDBB, DetectWDBB,DetectV8
 from .transformer import (
     AIFI,
     MLP,
@@ -167,5 +167,5 @@ __all__ = (
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention','SilenceLayer',
     "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention',
-    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",
+    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",'C2f_DeepDBB','C2f_WDBB','C2f_DBB',
 )

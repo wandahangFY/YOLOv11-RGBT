@@ -19,7 +19,7 @@ from ultralytics.nn.modules import (
     C3TR,
     ELAN1,
     OBB,
-    PSA,CrossAttentionShared,CrossMLCA,TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,
+    PSA,CrossAttentionShared,CrossMLCA,TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,
     SPP,
     SPPELAN,
     SPPF,
@@ -62,7 +62,7 @@ from ultralytics.nn.modules import (
     Segment,
     TorchVision,
     WorldDetect,
-    v10Detect, DetectDeepDBB,DetectWDBB ,
+    v10Detect, DetectDeepDBB,DetectWDBB ,DetectV8,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -253,7 +253,7 @@ class BaseModel(torch.nn.Module):
         """
         self = super()._apply(fn)
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, DetectDeepDBB, DetectWDBB)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (Detect, DetectDeepDBB, DetectWDBB,DetectV8)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             m.stride = fn(m.stride)
             m.anchors = fn(m.anchors)
             m.strides = fn(m.strides)
@@ -319,7 +319,7 @@ class DetectionModel(BaseModel):
 
         # Build strides
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, DetectDeepDBB, DetectWDBB)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (Detect, DetectDeepDBB, DetectWDBB,DetectV8)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             s = 256  # 2x min stride
             m.inplace = self.inplace
 
@@ -966,7 +966,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
-            C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,
+            C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,
             RepNCSPELAN4,
             ELAN1,
             ADown,
@@ -991,7 +991,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
-            C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,
+            C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,
             C2fAttn,
             C3,
             C3TR,
@@ -1063,11 +1063,11 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [args[0]]
             n = 1
             # print(args,c2)
-        elif m in frozenset({Detect,DetectDeepDBB,DetectWDBB, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect}):
+        elif m in frozenset({Detect,DetectDeepDBB,DetectWDBB,DetectV8, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect}):
             args.append([ch[x] for x in f])
             if m is Segment:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
-            if m in {Detect, Segment, Pose, OBB,DetectDeepDBB,DetectWDBB}:
+            if m in {Detect, Segment, Pose, OBB,DetectDeepDBB,DetectWDBB,DetectV8}:
                 m.legacy = legacy
         elif m is RTDETRDecoder:  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
@@ -1187,7 +1187,7 @@ def guess_model_task(model):
                 return "pose"
             elif isinstance(m, OBB):
                 return "obb"
-            elif isinstance(m, (Detect,DetectDeepDBB,DetectWDBB, WorldDetect, v10Detect)):
+            elif isinstance(m, (Detect,DetectDeepDBB,DetectV8,DetectWDBB, WorldDetect, v10Detect)):
                 return "detect"
 
     # Guess from model filename

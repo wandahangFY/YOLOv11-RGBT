@@ -53,7 +53,7 @@ __all__ = (
     "TorchVision",
     "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention',
-    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",
+    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",'C2f_DeepDBB','C2f_WDBB','C2f_DBB',
 )
 
 
@@ -1549,4 +1549,20 @@ class C3k2_DeepDBB(C3k2):
         super().__init__(c1, c2, n, c3k, e, g, shortcut)
         self.m = nn.ModuleList(C3k_DeepDBB(self.c, self.c, 2, shortcut, g) if c3k else Bottleneck_DeepDBB(self.c, self.c, shortcut, g) for _ in range(n))
 
+
+class C2f_WDBB(C2f):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):
+        super().__init__(c1, c2, n, shortcut, g, e)
+        self.m = nn.ModuleList(Bottleneck_WDBB(self.c, self.c, shortcut, g, k=(3, 3), e=1.0) for _ in range(n))
+
+
+class C2f_DeepDBB(C2f):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):
+        super().__init__(c1, c2, n, shortcut, g, e)
+        self.m = nn.ModuleList(Bottleneck_DeepDBB(self.c, self.c, shortcut, g, k=(3, 3), e=1.0) for _ in range(n))
+
+class C2f_DBB(C2f):
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):
+        super().__init__(c1, c2, n, shortcut, g, e)
+        self.m = nn.ModuleList(Bottleneck_DBB(self.c, self.c, shortcut, g, k=(3, 3), e=1.0) for _ in range(n))
 ######################################## C2f-DDB end ########################################
