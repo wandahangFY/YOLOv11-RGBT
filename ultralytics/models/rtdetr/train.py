@@ -73,6 +73,7 @@ class RTDETRTrainer(DetectionTrainer):
             classes=self.args.classes,
             data=self.data,
             fraction=self.args.fraction if mode == "train" else 1.0,
+            use_simotm=self.args.use_simotm,
         )
 
     def get_validator(self):

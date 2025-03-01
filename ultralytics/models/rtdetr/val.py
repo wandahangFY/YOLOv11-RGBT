@@ -90,6 +90,7 @@ class RTDETRValidator(DetectionValidator):
             cache=self.args.cache or None,
             prefix=colorstr(f"{mode}: "),
             data=self.data,
+            use_simotm=self.args.use_simotm,
         )
 
     def postprocess(self, preds):
