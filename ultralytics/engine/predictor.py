@@ -248,6 +248,7 @@ class BasePredictor:
             vid_stride=self.args.vid_stride,
             buffer=self.args.stream_buffer,
             use_simotm=self.args.use_simotm,
+            imgsz=self.args.imgsz,
         )
         self.source_type = self.dataset.source_type
         if not getattr(self, "stream", True) and (

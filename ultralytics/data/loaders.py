@@ -320,10 +320,12 @@ class LoadImagesAndVideos:
         - Can read from a text file containing paths to images and videos.
     """
 
-    def __init__(self, path, batch=1, vid_stride=1,use_simotm="SimOTMBBS"):
+    def __init__(self, path, batch=1, vid_stride=1,use_simotm="SimOTMBBS",imgsz=640):
         """Initialize dataloader for images and videos, supporting various input formats."""
         parent = None
         self.use_simotm = use_simotm
+        self.imgsz=imgsz
+        self.augment=False
         if isinstance(path, str) and Path(path).suffix == ".txt":  # *.txt file with img/vid/dir on each line
             parent = Path(path).parent
             path = Path(path).read_text().splitlines()  # list of sources
@@ -552,6 +554,7 @@ class LoadImagesAndVideos:
                     if h_vis != h_inf or w_vis != w_inf:
                         r_vis = self.imgsz / max(h_vis, w_vis)  # ratio
                         r_inf = self.imgsz / max(h_inf, w_inf)  # ratio
+                        # print(self.imgsz)
                         if r_vis != 1:  # if sizes are not equal
                             interp = cv2.INTER_LINEAR if (self.augment or r_vis > 1) else cv2.INTER_AREA
                             im_visible = cv2.resize(im_visible, (
