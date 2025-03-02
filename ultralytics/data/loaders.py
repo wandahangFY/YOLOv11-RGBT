@@ -605,7 +605,7 @@ class LoadImagesAndVideos:
                 self.count += 1  # move to the next file
                 if self.count >= self.ni:  # end of image list
                     break
-
+        # print(paths)
         return paths, imgs, info
     # def __next__(self):
     #     """Returns the next batch of images or video frames with their paths and metadata."""
