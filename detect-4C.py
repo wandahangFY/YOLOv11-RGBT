@@ -4,7 +4,7 @@ from ultralytics import YOLO
 
 if __name__ == '__main__':
     model = YOLO(R"runs/M3FD/M3FD-yolov5-RGBT-midfusion/weights/best.pt") # select your model.pt path
-    model.predict(source=r"G:\wan\data\RGBT\testVD\visible\video.mp4",
+    model.predict(source=r"G:\wan\data\RGBT\testVDimg\visible",
                   imgsz=640,
                   project='runs/detect',
                   name='exp',
