@@ -1495,8 +1495,8 @@ class LetterBox:
     Examples:
         >>> transform = LetterBox(new_shape=(640, 640))
         >>> result = transform(labels)
-        >>> resized_img = result["img"]
-        >>> updated_instances = result["instances"]
+        >>> resized_img = result['img']
+        >>> updated_instances = result['instances']
     """
 
     def __init__(self, new_shape=(640, 640), auto=False, scaleFill=False, scaleup=True, center=True, stride=32):
@@ -1550,9 +1550,9 @@ class LetterBox:
 
         Examples:
             >>> letterbox = LetterBox(new_shape=(640, 640))
-            >>> result = letterbox(labels={"img": np.zeros((480, 640, 3)), "instances": Instances(...)})
-            >>> resized_img = result["img"]
-            >>> updated_instances = result["instances"]
+            >>> result = letterbox(labels={'img': np.zeros((480, 640, 3)), 'instances': Instances(...)})
+            >>> resized_img = result['img']
+            >>> updated_instances = result['instances']
         """
         if labels is None:
             labels = {}
@@ -1561,7 +1561,12 @@ class LetterBox:
         new_shape = labels.pop("rect_shape", self.new_shape)
         if isinstance(new_shape, int):
             new_shape = (new_shape, new_shape)
-
+        # 2025-01-05-begin
+        channels = 3
+        if len(img.shape)>2:
+            channels=img.shape[2]
+        else:
+            channels=1
         # Scale ratio (new / old)
         r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
         if not self.scaleup:  # only scale down, do not scale up (for better val mAP)
@@ -1586,22 +1591,50 @@ class LetterBox:
             img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
         top, bottom = int(round(dh - 0.1)) if self.center else 0, int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)) if self.center else 0, int(round(dw + 0.1))
-        img = cv2.copyMakeBorder(
-            img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114)
-        )  # add border
+        # if channels
+        value = (114, 114, 114)  # RGB 彩色图像
+        # 根据通道数设置 value 的维度
+        if channels == 1:
+            value = (114, 114, 114)  # 单通道灰度图像
+        elif channels == 3 or channels ==6:
+            value = (114, 114, 114)  # RGB 彩色图像
+        elif channels == 4:
+            value = (114, 114, 114,114)  # RGB 彩色图像
+        else:
+            raise ValueError("Unsupported number of channels,ch=",channels)
+        # 2025-01-05-end
+        if channels == 6:
+            img1= img[:, :, :3]
+            img2 = img[:, :, 3:]
+            img1 = cv2.copyMakeBorder(
+                img1, top, bottom, left, right, cv2.BORDER_CONSTANT, value=value
+            )  # add border
+            img2 = cv2.copyMakeBorder(
+                img2, top, bottom, left, right, cv2.BORDER_CONSTANT, value=value
+            )  # add border
+            # img[:, :, :3] = img1
+            # img[:, :, 3:] = img2
+            # 将彩色图像的三个通道分离
+            b, g, r = cv2.split(img1)
+            b2, g2, r2 = cv2.split(img2)
+            # 合并成6通道图像
+            img = cv2.merge((b, g, r, b2, g2, r2))
+        else :
+            img = cv2.copyMakeBorder(
+                img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=value
+            )  # add border
         if labels.get("ratio_pad"):
             labels["ratio_pad"] = (labels["ratio_pad"], (left, top))  # for evaluation
 
         if len(labels):
-            labels = self._update_labels(labels, ratio, left, top)
+            labels = self._update_labels(labels, ratio, dw, dh)
             labels["img"] = img
             labels["resized_shape"] = new_shape
             return labels
         else:
             return img
 
-    @staticmethod
-    def _update_labels(labels, ratio, padw, padh):
+    def _update_labels(self, labels, ratio, padw, padh):
         """
         Updates labels after applying letterboxing to an image.
 
@@ -1619,7 +1652,7 @@ class LetterBox:
 
         Examples:
             >>> letterbox = LetterBox(new_shape=(640, 640))
-            >>> labels = {"instances": Instances(...)}
+            >>> labels = {'instances': Instances(...)}
             >>> ratio = (0.5, 0.5)
             >>> padw, padh = 10, 20
             >>> updated_labels = letterbox._update_labels(labels, ratio, padw, padh)
@@ -1629,107 +1662,6 @@ class LetterBox:
         labels["instances"].scale(*ratio)
         labels["instances"].add_padding(padw, padh)
         return labels
-
-
-# class CopyPaste(BaseMixTransform):
-#     """
-#     CopyPaste class for applying Copy-Paste augmentation to image datasets.
-#
-#     This class implements the Copy-Paste augmentation technique as described in the paper "Simple Copy-Paste is a Strong
-#     Data Augmentation Method for Instance Segmentation" (https://arxiv.org/abs/2012.07177). It combines objects from
-#     different images to create new training samples.
-#
-#     Attributes:
-#         dataset (Any): The dataset to which Copy-Paste augmentation will be applied.
-#         pre_transform (Callable | None): Optional transform to apply before Copy-Paste.
-#         p (float): Probability of applying Copy-Paste augmentation.
-#
-#     Methods:
-#         get_indexes: Returns a random index from the dataset.
-#         _mix_transform: Applies Copy-Paste augmentation to the input labels.
-#         __call__: Applies the Copy-Paste transformation to images and annotations.
-#
-#     Examples:
-#         >>> from ultralytics.data.augment import CopyPaste
-#         >>> dataset = YourDataset(...)  # Your image dataset
-#         >>> copypaste = CopyPaste(dataset, p=0.5)
-#         >>> augmented_labels = copypaste(original_labels)
-#     """
-#
-#     def __init__(self, dataset=None, pre_transform=None, p=0.5, mode="flip") -> None:
-#         """Initializes CopyPaste object with dataset, pre_transform, and probability of applying MixUp."""
-#         super().__init__(dataset=dataset, pre_transform=pre_transform, p=p)
-#         assert mode in {"flip", "mixup"}, f"Expected `mode` to be `flip` or `mixup`, but got {mode}."
-#         self.mode = mode
-#
-#     def get_indexes(self):
-#         """Returns a list of random indexes from the dataset for CopyPaste augmentation."""
-#         return random.randint(0, len(self.dataset) - 1)
-#
-#     def _mix_transform(self, labels):
-#         """Applies Copy-Paste augmentation to combine objects from another image into the current image."""
-#         labels2 = labels["mix_labels"][0]
-#         return self._transform(labels, labels2)
-#
-#     def __call__(self, labels):
-#         """Applies Copy-Paste augmentation to an image and its labels."""
-#         if len(labels["instances"].segments) == 0 or self.p == 0:
-#             return labels
-#         if self.mode == "flip":
-#             return self._transform(labels)
-#
-#         # Get index of one or three other images
-#         indexes = self.get_indexes()
-#         if isinstance(indexes, int):
-#             indexes = [indexes]
-#
-#         # Get images information will be used for Mosaic or MixUp
-#         mix_labels = [self.dataset.get_image_and_label(i) for i in indexes]
-#
-#         if self.pre_transform is not None:
-#             for i, data in enumerate(mix_labels):
-#                 mix_labels[i] = self.pre_transform(data)
-#         labels["mix_labels"] = mix_labels
-#
-#         # Update cls and texts
-#         labels = self._update_label_text(labels)
-#         # Mosaic or MixUp
-#         labels = self._mix_transform(labels)
-#         labels.pop("mix_labels", None)
-#         return labels
-#
-#     def _transform(self, labels1, labels2={}):
-#         """Applies Copy-Paste augmentation to combine objects from another image into the current image."""
-#         im = labels1["img"]
-#         cls = labels1["cls"]
-#         h, w = im.shape[:2]
-#         instances = labels1.pop("instances")
-#         instances.convert_bbox(format="xyxy")
-#         instances.denormalize(w, h)
-#
-#         im_new = np.zeros(im.shape, np.uint8)
-#         instances2 = labels2.pop("instances", None)
-#         if instances2 is None:
-#             instances2 = deepcopy(instances)
-#             instances2.fliplr(w)
-#         ioa = bbox_ioa(instances2.bboxes, instances.bboxes)  # intersection over area, (N, M)
-#         indexes = np.nonzero((ioa < 0.30).all(1))[0]  # (N, )
-#         n = len(indexes)
-#         sorted_idx = np.argsort(ioa.max(1)[indexes])
-#         indexes = indexes[sorted_idx]
-#         for j in indexes[: round(self.p * n)]:
-#             cls = np.concatenate((cls, labels2.get("cls", cls)[[j]]), axis=0)
-#             instances = Instances.concatenate((instances, instances2[[j]]), axis=0)
-#             cv2.drawContours(im_new, instances2.segments[[j]].astype(np.int32), -1, (1, 1, 1), cv2.FILLED)
-#
-#         result = labels2.get("img", cv2.flip(im, 1))  # augment segments
-#         i = im_new.astype(bool)
-#         im[i] = result[i]
-#
-#         labels1["img"] = im
-#         labels1["cls"] = cls
-#         labels1["instances"] = instances
-#         return labels1
 
 
 class Albumentations:
