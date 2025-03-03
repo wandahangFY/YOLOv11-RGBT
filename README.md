@@ -153,4 +153,4 @@ Other open-source projects are being organized and released gradually. Please ch
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wandahangFY/YOLO-MIF&type=Date)](https://star-history.com/#wandahangFY/YOLO-MIF&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=wandahangFY/YOLOv11-RGBT&type=Date)](https://star-history.com/#wandahangFY/YOLOv11-RGBT&Date)

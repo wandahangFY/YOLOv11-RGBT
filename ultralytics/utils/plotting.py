@@ -2194,6 +2194,7 @@ def plot_images(
     save: bool = True,
     conf_thres: float = 0.25,
     use_simotm="RGBT",
+    ir_show=False, # 2025-03-03  yzc
 ) -> Optional[np.ndarray]:
     """
     Plot image grid with labels, bounding boxes, masks, and keypoints.
@@ -2250,9 +2251,16 @@ def plot_images(
         x, y = int(w * (i // ns)), int(h * (i % ns))  # block origin
         im=images[i]
         if (im.shape[0] == 4 or im.shape[0] == 6):
-            im = im.transpose(1, 2, 0)[:, :, :3]
+            # im = im.transpose(1, 2, 0)[:, :, :3]
+            #  'yzc 可以选择IR图像进行显示，在最后一个维度扩充1通道为3通道，如果ir_show为false则显示RGB'
+            if ir_show:
+                im = im.transpose(1, 2, 0)[:, :, 3:]
+                im = im if im.shape[2]==3 else np.repeat(im, repeats=3, axis=2)
+            else:
+                im = im.transpose(1, 2, 0)[:, :, :3]
         else:
             im = im.transpose(1, 2, 0)
+        mosaic[y:y + h, x:x + w, :] = im
         mosaic[y:y + h, x:x + w, :] = im
 
     # Resize (optional)

@@ -1069,13 +1069,37 @@ class RandomPerspective:
 
         # Combined rotation matrix
         M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
+        # 2025-03-03 'yzc'
+        if len(img.shape) > 2:
+            channels = img.shape[2]
+            if channels == 4:
+                value = (114, 114, 114, 114)  # RGBT
+            else:
+                value = (114, 114, 114)  # RGB  RGBRGB6C
+        else:
+            channels = 1
         # Affine image
+
         if (border[0] != 0) or (border[1] != 0) or (M != np.eye(3)).any():  # image changed
-            if self.perspective:
-                img = cv2.warpPerspective(img, M, dsize=self.size, borderValue=(114, 114, 114))
-            else:  # affine
-                img = cv2.warpAffine(img, M[:2], dsize=self.size, borderValue=(114, 114, 114))
+            # 2025-03-03 'yzc'
+            if channels == 6:
+                if self.perspective:
+                    rbg = cv2.warpPerspective(img[:, :, :3], M, dsize=self.size, borderValue=value)
+                    ir = cv2.warpPerspective(img[:, :, 3:], M, dsize=self.size, borderValue=value)
+                    img = np.concatenate((rbg, ir), axis=2)
+
+                else:  # affine
+                    rbg = cv2.warpAffine(img[:, :, :3], M[:2], dsize=self.size, borderValue=value)
+                    ir = cv2.warpAffine(img[:, :, 3:], M[:2], dsize=self.size, borderValue=value)
+                    img = np.concatenate((rbg, ir), axis=2)
+
+            else:
+                if self.perspective:
+                    img = cv2.warpPerspective(img, M, dsize=self.size, borderValue=value)
+                else:  # affine
+                    img = cv2.warpAffine(img, M[:2], dsize=self.size, borderValue=value)
         return img, M, s
+
 
     def apply_bboxes(self, bboxes, M):
         """
