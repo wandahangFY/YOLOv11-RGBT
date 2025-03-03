@@ -132,6 +132,19 @@ class DetectionTrainer(BaseTrainer):
             on_plot=self.on_plot,
             use_simotm=self.args.use_simotm,  # 2025-01-05
         )
+        # 'yzc' 2025-03-03
+        if self.args.use_simotm in ("RGBT", "RGBRGB6C"):
+            plot_images(
+                images=batch["img"],
+                batch_idx=batch["batch_idx"],
+                cls=batch["cls"].squeeze(-1),
+                bboxes=batch["bboxes"],
+                paths=batch["im_file"],
+                fname=self.save_dir / f"train_batch{ni}_ir.jpg",
+                on_plot=self.on_plot,
+                use_simotm=self.args.use_simotm,  # 2025-01-05
+                ir_show=True  # 显示红外图像以及标签
+            )
 
     def plot_metrics(self):
         """Plots metrics from a CSV file."""

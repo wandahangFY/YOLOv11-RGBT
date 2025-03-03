@@ -3,7 +3,7 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO('ultralytics/cfg/models/v10/yolov10n.yaml')
+    model = YOLO('ultralytics/cfg/models/v9/yolov9t.yaml')
     # model.load('yolov8n.pt') # loading pretrain weights
     model.train(data=R'ultralytics/cfg/datasets/M3FD_IF.yaml',
                 cache=False,
@@ -20,5 +20,5 @@ if __name__ == '__main__':
                 use_simotm="RGB",
                 channels=3,
                 project='runs/M3FD',
-                name='M3FD_IF-yolov10-e300-16-',
+                name='M3FD_IF-yolov9t-e300-16-',
                 )

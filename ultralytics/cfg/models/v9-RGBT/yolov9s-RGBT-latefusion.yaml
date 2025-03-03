@@ -8,6 +8,7 @@ nc: 80 # number of classes
 ch: 4
 # GELAN backbone
 backbone:
+  # visible  backbone
   - [ -1, 1, Silence, [ ] ]  # 0-P1/2
   - [ 0, 1, SilenceChannel, [ 0,3 ] ]  # 0-P1/2
   - [-1, 1, Conv, [32, 3, 2]] # 2-P1/2
@@ -21,6 +22,7 @@ backbone:
   - [-1, 1, RepNCSPELAN4, [256, 256, 128, 3]] # 10
   - [-1, 1, SPPELAN, [256, 128]] # 11
 
+  # infrared  backbone
   - [ 0, 1, SilenceChannel, [ 3,4 ] ]  # 12-P1/2
   - [-1, 1, Conv, [32, 3, 2]] # 13-P1/2
   - [-1, 1, Conv, [64, 3, 2]] # 14-P2/4
@@ -34,6 +36,7 @@ backbone:
   - [-1, 1, SPPELAN, [256, 128]] # 22
 
 head:
+  # visible  neck
   - [11, 1, nn.Upsample, [None, 2, "nearest"]]
   - [[-1, 8], 1, Concat, [1]] # cat backbone P4
   - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 25
@@ -51,7 +54,7 @@ head:
   - [-1, 1, RepNCSPELAN4, [256, 256, 128, 3]] # 34 (P5/32-large)
 
 
-
+  # infrared  neck
   - [22, 1, nn.Upsample, [None, 2, "nearest"]]
   - [[-1, 19], 1, Concat, [1]] # cat backbone P4
   - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 37
@@ -71,7 +74,5 @@ head:
   - [ [ 28, 40 ], 1, Concat, [ 1 ] ]  # cat head P5  47
   - [ [ 31, 43 ], 1, Concat, [ 1 ] ]  # cat head P5  48
   - [ [ 34, 46 ], 1, Concat, [ 1 ] ]  # cat head P5  49
-
-
 
   - [[47, 48, 49], 1, Detect, [nc]] # Detect(P3, P4 P5)
