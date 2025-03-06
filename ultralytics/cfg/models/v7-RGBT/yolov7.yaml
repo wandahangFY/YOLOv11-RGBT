@@ -1,0 +1,60 @@
+# parameters
+nc: 80  # number of classes
+depth_multiple: 1.0  # model depth multiple
+width_multiple: 1.0  # layer channel multiple
+
+
+ch: 4
+# yolov7 backbone
+backbone:
+  # [from, number, module, args]
+  [[-1, 1, Conv, [32, 3, 1]],   # 0-p0/1
+   [-1, 1, Conv, [64, 3, 2]],   # 1-P1/2
+   [-1, 1, Conv, [64, 3, 1]],   # 2-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 3-P2/4
+
+   [-1, 1, ELAN, [256]],  # 4-P2/4
+
+   [-1, 1, MP_1, [256]],  # 5-P3/8 256-256
+   [-1, 1, ELAN, [512]],  # 6-P3/8
+
+   [-1, 1, MP_1, [512]],  # 7-P4/16 512-512
+   [-1, 1, ELAN, [1024]], # 8-P4/16
+
+   [-1, 1, MP_1, [1024]], # 9-P5/32
+   [-1, 1, ELAN, [1024, True]],  # 10-P5/32 1024-1024
+
+   [-1, 1, SPPCSPC, [512]], # 11
+  ]
+
+# yolov7 head
+head:
+  [
+
+   [-1, 1, Conv, [256, 1, 1]], # 12
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [8, 1, Conv, [256, 1, 1]], # 14 route backbone P4
+   [[-1, -2], 1, Concat, [1]], # 15
+   [-1, 1, ELAN_H, [256]], # 16 512-256
+
+   [-1, 1, Conv, [128, 1, 1]], # 17
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']], # 18
+   [6, 1, Conv, [128, 1, 1]], # 19 route backbone P3
+   [[-1, -2], 1, Concat, [1]], # 20
+   [-1, 1, ELAN_H, [128]], # 21 256-128
+
+   [-1, 1, MP_2, [256]], # 22 128-256
+   [[-1, 16], 1, Concat, [1]], # 23 route backbone P4
+   [-1, 1, ELAN_H, [256]], # 24 512-256
+
+   [-1, 1, MP_2, [512]], # 25 256-512
+   [[-1, 11], 1, Concat, [1]], # 26 route backbone P5
+   [-1, 1, ELAN_H, [512]], # 27 1024-512
+
+   [21, 1, RepConv, [256, 3, 1]],  # 28 128-256
+   [24, 1, RepConv, [512, 3, 1]],  # 29 256-512
+   [27, 1, RepConv, [1024, 3, 1]], # 30 512-1024
+
+   [[28,29,30], 1, Detect, [nc]], # Detect(P3, P4, P5)
+  ]
+

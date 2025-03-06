@@ -1,0 +1,66 @@
+# parameters
+nc: 80  # number of classes
+#depth_multiple: 1.0  # model depth multiple
+#width_multiple: 1.0  # layer channel multiple
+
+#activation: nn.ReLU()
+# anchors
+#anchors:
+#  - [10,13, 16,30, 33,23]  # P3/8
+#  - [30,61, 62,45, 59,119]  # P4/16
+#  - [116,90, 156,198, 373,326]  # P5/32
+
+ch: 3
+# yolov7-tiny backbone
+backbone:
+  # [from, number, module, args] c2, k=1, s=1, p=None, g=1, act=True
+  [[-1, 1, Conv, [32, 3, 2, None, 1]],  # 0-P1/2
+
+   [-1, 1, Conv, [64, 3, 2, None, 1]],  # 1-P2/4
+   [-1, 1, ELAN_t, [64, 1, 1, None, 1]],  # 2
+
+   [-1, 1, MP_1, [64]],  # 3-P3/8
+   [-1, 1, ELAN_t, [128, 1, 1, None, 1]],  # 4
+#
+   [-1, 1, MP_1, [128]],  # 5-P4/16
+   [-1, 1, ELAN_t, [256, 1, 1, None, 1]],  # 6
+##
+   [-1, 1, MP_1, [256]],  # 7-P5/32
+   [-1, 1, ELAN_t, [512, 1, 1, None, 1]],  # 8
+   [-1, 1, SPPCSPCSIM, [256]], # 9
+  ]
+
+# yolov7-tiny head
+head:
+#  [
+  [
+
+   [-1, 1, Conv, [128, 1, 1, None, 1]],
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [6, 1, Conv, [128, 1, 1, None, 1]], # route backbone P4
+   [[-1, -2], 1, Concat, [1]], # 13
+   [-1, 1, ELAN_t, [128, 1, 1, None, 1]],  # 14
+
+   [-1, 1, Conv, [64, 1, 1, None, 1]],
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [4, 1, Conv, [64, 1, 1, None, 1]], # route backbone P3
+   [[-1, -2], 1, Concat, [1]],
+   [-1, 1, ELAN_t, [64, 1, 1, None, 1]],  # 19
+
+   [-1, 1, Conv, [128, 3, 2, None, 1]],
+   [[-1, 14], 1, Concat, [1]],
+   [-1, 1, ELAN_t, [128, 1, 1, None, 1]],  # 22  P4
+
+   [-1, 1, Conv, [256, 3, 2, None, 1]],
+   [[-1, 9], 1, Concat, [1]],
+   [-1, 1, ELAN_t, [256, 1, 1, None, 1]],  # 25 P5
+
+   [19, 1, Conv, [128, 3, 1, None, 1]],
+   [22, 1, Conv, [256, 3, 1, None, 1]],
+   [25, 1, Conv, [512, 3, 1, None, 1]],
+
+#   [-1, 1, Classify, [nc]] # Classify
+   [[26,27,28], 1, Detect, [nc]] # Detect(P3, P4, P5)
+
+#   [[26], 1, Segment, [nc, 32, 256]] # Detect(P3, P4, P5)
+  ]
