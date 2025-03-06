@@ -3,14 +3,14 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO('ultralytics/cfg/models/v8/yolov8n.yaml')
+    model = YOLO('ultralytics/cfg/models/12/yolo12n.yaml')
     # model.load('yolov8n.pt') # loading pretrain weights
     model.train(data=R'ultralytics/cfg/datasets/BCCD.yaml',
                 cache=False,
                 imgsz=640,
-                epochs=20,
-                batch=16,
-                close_mosaic=10,
+                epochs=10,
+                batch=4,
+                close_mosaic=5,
                 workers=2,
                 device='0',
                 optimizer='SGD',  # using SGD
@@ -20,5 +20,5 @@ if __name__ == '__main__':
                 use_simotm="RGB",
                 channels=3,
                 project='BCCD',
-                name='BCCD-yolov8n-DBBNCSPELAN',
+                name='BCCD-yolo12n-PGI',
                 )

@@ -25,8 +25,9 @@ from .block import (
     C3TR,
     CIB,
     DFL,
-    ELAN1,
-    PSA,CrossAttentionShared, CrossMLCA , TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,
+    ELAN1,ELAN_t,ELAN_H,ELAN,SPPCSPCSIM,SPPCSPC,MP_2,MP_1,YOLOv4_BottleneckCSP,YOLOv4_Bottleneck,
+    PSA,CrossAttentionShared, CrossMLCA , TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,RecursionDiverseBranchBlock,
+    C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
     SPP,
     SPPELAN,
     SPPF,
@@ -78,7 +79,7 @@ from .conv import (
 
 from .rep_block import  DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock,FeaturePyramidAggregationAttention,SilenceLayer
 
-from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect, DetectDeepDBB, DetectWDBB,DetectV8
+from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect, DetectDeepDBB, DetectWDBB,DetectV8,DetectAux
 from .transformer import (
     AIFI,
     MLP,
@@ -131,7 +132,7 @@ __all__ = (
     "Bottleneck",
     "BottleneckCSP",
     "Proto",
-    "Detect",
+    "Detect",'DetectAux',
     "Segment",
     "Pose",
     "Classify",
@@ -156,7 +157,7 @@ __all__ = (
     "CBFuse",
     "CBLinear",
     "AConv",
-    "ELAN1",
+    "ELAN1","ELAN","ELAN_H",'MP_1','MP_2','ELAN_t','SPPCSPCSIM','SPPCSPC',
     "RepVGGDW",
     "CIB",
     "C2fCIB",
@@ -165,7 +166,7 @@ __all__ = (
     "TorchVision",
     "Index", 'Silence','SilenceChannel','ChannelToNumber','NumberToChannel',
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention','SilenceLayer',
-    "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",
+    "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",'YOLOv4_BottleneckCSP','YOLOv4_Bottleneck',
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention',
-    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",'C2f_DeepDBB','C2f_WDBB','C2f_DBB',
+    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",'C2f_DeepDBB','C2f_WDBB','C2f_DBB','C3k_RDBB','C2f_RDBB','C3k2_RDBB','A2C2f',
 )

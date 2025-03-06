@@ -19,8 +19,7 @@ ch: 4
 backbone:
   # [from, repeats, module, args]
   - [-1, 1, Silence, []]  # 0-P1/2
-    # visible
-  - [0, 1, SilenceChannel, [0,3]]  # 1-P1/2
+  - [0, 1, SilenceChannel, [0,4]]  # 1-P1/2
   - [-1, 1, Conv, [64, 3, 2]] # 2-P1/2
   - [-1, 1, Conv, [128, 3, 2]] # 3-P2/4
   - [-1, 2, C3k2, [256, False, 0.25]]
@@ -31,7 +30,6 @@ backbone:
   - [-1, 1, Conv, [1024, 3, 2]] # 9-P5/32
   - [-1, 2, C3k2, [1024, True]] # 10
 
-  # infrared
   - [ 0, 1, SilenceChannel, [ 3,4 ] ]  # 11-P1/2
   - [ -1, 1, Conv, [ 64, 3, 2 ] ] # 12-P1/2
   - [ -1, 1, Conv, [ 128, 3, 2 ] ] # 13-P2/4

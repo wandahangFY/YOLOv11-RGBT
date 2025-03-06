@@ -3,13 +3,14 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO('ultralytics/cfg/models/v9-RGBT/yolov9t-RGBT-scorefusion.yaml')
+    model = YOLO('ultralytics/cfg/models/v7-RGBT/yolov7-RGBT-mid-to-late-fusion.yaml')
+    # model.info(True,True)
     # model.load('yolov8n.pt') # loading pretrain weights
     model.train(data=R'ultralytics/cfg/datasets/LLVIP_r20.yaml',
                 cache=False,
                 imgsz=640,
                 epochs=10,
-                batch=16,
+                batch=2,
                 close_mosaic=0,
                 workers=2,
                 device='0',
@@ -20,5 +21,5 @@ if __name__ == '__main__':
                 use_simotm="RGBT",
                 channels=4,
                 project='runs/LLVIP_r20',
-                name='LLVIP_r20-yolov9t-RGBT-scorefusion-',
+                name='LLVIP_r20-yolov7-RGBT-mid-to-late-fusion-',
                 )

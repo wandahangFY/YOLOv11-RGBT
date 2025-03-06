@@ -1,0 +1,109 @@
+# parameters
+nc: 80  # number of classes
+depth_multiple: 1.0  # model depth multiple
+width_multiple: 1.0  # layer channel multiple
+
+
+ch: 4
+# yolov7 backbone
+backbone:
+  # [from, number, module, args]
+  [
+   [ -1, 1, Silence, [ ] ] , # 0-P1/2
+   # visible
+   [ 0, 1, SilenceChannel, [ 0,3 ] ] , # 1-P1/2
+   [-1, 1, Conv, [32, 3, 1]],   # 2-p0/1
+   [-1, 1, Conv, [64, 3, 2]],   # 3-P1/2
+   [-1, 1, Conv, [64, 3, 1]],   # 4-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 5-P2/4
+
+   [-1, 1, ELAN, [256]],  # 6-P2/4
+
+   [-1, 1, MP_1, [256]],  # 7-P3/8 256-256
+   [-1, 1, ELAN, [512]],  # 8-P3/8
+
+   [-1, 1, MP_1, [512]],  # 9-P4/16 512-512
+   [-1, 1, ELAN, [1024]], # 10-P4/16
+
+   [-1, 1, MP_1, [1024]], # 11-P5/32
+   [-1, 1, ELAN, [1024, True]],  # 12-P5/32 1024-1024
+   [-1, 1, SPPCSPC, [512]], # 13
+
+  # infrared
+   [ 0, 1, SilenceChannel, [ 3,4 ] ] , # 14-P1/2
+   [-1, 1, Conv, [32, 3, 1]],   # 15-p0/1
+   [-1, 1, Conv, [64, 3, 2]],   # 16-P1/2
+   [-1, 1, Conv, [64, 3, 1]],   # 17-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 18-P2/4
+
+   [-1, 1, ELAN, [256]],  # 19-P2/4
+
+   [-1, 1, MP_1, [256]],  # 20-P3/8 256-256
+   [-1, 1, ELAN, [512]],  # 21-P3/8
+
+   [-1, 1, MP_1, [512]],  # 22-P4/16 512-512
+   [-1, 1, ELAN, [1024]], # 23-P4/16
+
+   [-1, 1, MP_1, [1024]], # 24-P5/32
+   [-1, 1, ELAN, [1024, True]],  # 25-P5/32 1024-1024
+
+   [-1, 1, SPPCSPC, [512]], # 26
+  ]
+
+# yolov7 head
+head:
+  [# visible
+   [-1, 1, Conv, [256, 1, 1]], # 27
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [10, 1, Conv, [256, 1, 1]], # 29 route backbone P4
+   [[-1, -2], 1, Concat, [1]], # 30
+   [-1, 1, ELAN_H, [256]], # 31 512-256
+
+   [-1, 1, Conv, [128, 1, 1]], # 32
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']], # 33
+   [8, 1, Conv, [128, 1, 1]], # 34 route backbone P3
+   [[-1, -2], 1, Concat, [1]], # 35
+   [-1, 1, ELAN_H, [128]], # 36 256-128
+
+   [-1, 1, MP_2, [256]], # 37 128-256
+   [[-1, 31], 1, Concat, [1]], # 38 route backbone P4
+   [-1, 1, ELAN_H, [256]], # 39 512-256
+
+   [-1, 1, MP_2, [512]], # 40 256-512
+   [[-1, 13], 1, Concat, [1]], # 41 route backbone P5
+   [-1, 1, ELAN_H, [512]], # 42 1024-512
+
+   # infrared
+   [26, 1, Conv, [256, 1, 1]], # 43
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [23, 1, Conv, [256, 1, 1]], # 45 route backbone P4
+   [[-1, -2], 1, Concat, [1]], # 46
+   [-1, 1, ELAN_H, [256]], # 47 512-256
+
+   [-1, 1, Conv, [128, 1, 1]], # 48
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']], # 49
+   [21, 1, Conv, [128, 1, 1]], # 50 route backbone P3
+   [[-1, -2], 1, Concat, [1]], # 51
+   [-1, 1, ELAN_H, [128]], # 52 256-128
+
+   [-1, 1, MP_2, [256]], # 53 128-256
+   [[-1, 47], 1, Concat, [1]], # 54 route backbone P4
+   [-1, 1, ELAN_H, [256]], # 55 512-256
+
+   [-1, 1, MP_2, [512]], # 56 256-512
+   [[-1, 26], 1, Concat, [1]], # 57 route backbone P5
+   [-1, 1, ELAN_H, [512]], # 58 1024-512
+
+
+
+   [ [ 36, 52 ], 1, Concat, [ 1 ] ], # cat backbone P5   59
+   [ [ 39, 55 ], 1, Concat, [ 1 ] ],  # cat backbone P4   60
+   [ [ 42, 58 ], 1, Concat, [ 1 ] ], # cat backbone P3    61
+
+   [59, 1, RepConv, [256, 3, 1]],  # 62 128-256
+   [60, 1, RepConv, [512, 3, 1]],  # 63 256-512
+   [61, 1, RepConv, [1024, 3, 1]], # 64 512-1024
+
+   [[62,63,64], 1, Detect, [nc]], # Detect(P3, P4, P5)
+  ]
+
