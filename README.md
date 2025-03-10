@@ -208,6 +208,7 @@ cd YOLOv11-RGBT
 Configure your dataset directory or TXT file according to one of the three methods mentioned above.
 
 ### 3. Install Dependencies
+(It is recommended to directly use the YOLOv11 or YOLOv8 environment that has already been set up on this computer, without the need to download again.)
 ```bash
 pip install -r requirements.txt
 ```

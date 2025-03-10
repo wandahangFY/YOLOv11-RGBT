@@ -224,6 +224,7 @@ cd YOLOv11-RGBT
 根据上述三种方法之一，配置您的数据集目录或 TXT 文件。
 
 ### 3. 安装依赖
+(建议直接采用本电脑上已经搭建好的YOLOv11或者YOLOv8环境，不必重新下载)
 ```bash
 pip install -r requirements.txt
 ```
