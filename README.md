@@ -5,16 +5,23 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 
 - YAML files for all YOLO series from YOLOv3 to YOLOv12, along with corresponding RGBT YAML files, have been added.
 - The training mode of YOLOv11 itself is retained. It is recommended to learn how to set up the YOLOv11 environment and how to use it before using this project (YOLOv11 environment can be used seamlessly).
+
+- Added YAML files for all YOLO series from YOLOv3 to YOLOv12, as well as the corresponding RGBT YAML files.
+- Retained the original training mode of YOLOv11. It is recommended to first learn how to set up the environment and usage of YOLOv11 before using this project (which can seamlessly utilize the environment of YOLOv11).
+- Supports multi-spectral object detection, multi-spectral keypoint detection, and multi-spectral instance segmentation tasks.
+- Compared to YOLOv11, two additional parameters have been added: channels, use_simotm, and the ch in the YAML model file must correspond accordingly.
+- channels: 1 # (int) Number of model channels, detailed introduction is provided below.
+- use_simotm: SimOTMBBS # (str) The training mode used, such as BGR, RGBT, Gray, etc.
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 
-## Supported image formats:
-1. uint8: 'Gray'  Single-channel 8-bit gray-scale image.
-2. uint16: 'Gray16bit' Single-channel 16-bit gray-scale image.
-3. uint8: 'SimOTM' 'SimOTMBBS'   Single-channel 8-bit gray-scale image TO Three-channel 8-bit gray-scale image.
-4. uint8: 'BGR'  Three-channel 8-bit color image.
-5. unit8: 'RGBT' Four-channel 8-bit color image.(Including early fusion, middle fusion, late fusion, score fusion, weight sharing mode)
-6. unit8: 'RGBRGB6C' Six-channel 8-bit color image.(Including early fusion, middle fusion, late fusion, score fusion, weight sharing mode)
+## Supported image formats（use_simotm）:
+1. uint8: 'Gray'  Single-channel 8-bit gray-scale image.  channels=1 ,  yaml   ch: 1 
+2. uint16: 'Gray16bit' Single-channel 16-bit gray-scale image.  channels=1 ,  yaml   ch: 1 
+3. uint8: 'SimOTM' 'SimOTMBBS'   Single-channel 8-bit gray-scale image TO Three-channel 8-bit gray-scale image.  channels=3 ,  yaml   ch: 3 
+4. uint8: 'BGR'  Three-channel 8-bit color image.  channels=3 ,  yaml   ch: 3 
+5. unit8: 'RGBT' Four-channel 8-bit color image.(Including early fusion, middle fusion, late fusion, score fusion, weight sharing mode)  channels=4 ,  yaml   ch: 4 
+6. unit8: 'RGBRGB6C' Six-channel 8-bit color image.(Including early fusion, middle fusion, late fusion, score fusion, weight sharing mode) channels=6 ,  yaml   ch: 6 
 
 Among them, the directory format of 1-4 is consistent with YOLOv8. With train.txt and val.txt, all you need to do is write the image address below visible, and the data format directory of 'RGBT' is as follows:
 

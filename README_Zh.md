@@ -8,17 +8,20 @@
 
 - 已添加YOLOv3-YOLOv12所有YOLO系列的yaml文件以及对应的RGBT  yaml文件
 - 保留了YOLOv11 本身的训练模式，建议先学会搭建YOLOv11的环境和使用方式再来使用本项目（可以无缝使用YOLOv11的环境）
-
+- 支持多光谱目标检测，多光谱关节点检测，多光谱实例分割任务
+- 与YOLOv11相比，添加了2个参数， channels、use_simotm和 yaml模型文件里面的ch需要对应起来
+- channels: 1 # (int) 模型通道数 具体介绍见下文
+- use_simotm: SimOTMBBS # (str) 采用的训练模式，如 BGR , RGBT ，Gray 等等
 
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
-## 支持图像格式：
-1. uint8: 'Gray' 单通道8位灰度图像。
-2. uint16: 'Gray16bit' 单通道16位灰度图像。
-3. uint8: 'SimOTM' 'SimOTMBBS' 单通道8位灰度图像转换为三通道8位灰度图像。
-4. uint8: 'BGR' 三通道8位彩色图像。
-5. unit8: 'RGBT' 四通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式)
-6. unit8: 'RGBRGB6C' 六通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式)
+## 支持图像格式（use_simotm）：
+1. uint8: 'Gray' 单通道8位灰度图像。   channels=1 ,  yaml   ch: 1 
+2. uint16: 'Gray16bit' 单通道16位灰度图像。 channels=1 ,  yaml   ch: 1 
+3. uint8: 'SimOTM' 'SimOTMBBS' 单通道8位灰度图像转换为三通道8位灰度图像。 channels=3 ,  yaml   ch: 3 
+4. uint8: 'BGR' 三通道8位彩色图像。 channels=3 ,  yaml   ch: 3 
+5. unit8: 'RGBT' 四通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=4 ,  yaml   ch: 4 
+6. unit8: 'RGBRGB6C' 六通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=6 ,  yaml   ch: 6 
 
 ## 更新日志
 - **2025-03-07**：添加数据集配置教程。
@@ -236,7 +239,15 @@ python train.py --data your_dataset_config.yaml
 ```
 #### 训练模式说明
 
-以下是项目中包含的不同训练模式的 Python 脚本文件，每个文件针对特定的训练需求和数据类型。
+- 以下是项目中包含的不同训练模式的 Python 脚本文件，每个文件针对特定的训练需求和数据类型，仅作为示例,实际上用一个train.py  合理修改参数即可。
+- 此外，和YOLOv11 相比，仅添加了2个参数，
+```bash
+channels: 1 # (int) channels of model
+use_simotm: SimOTMBBS # (str) Pretreatment method
+
+```
+
+
 
 4.1. **`train.py`**
    - 基础训练脚本。
