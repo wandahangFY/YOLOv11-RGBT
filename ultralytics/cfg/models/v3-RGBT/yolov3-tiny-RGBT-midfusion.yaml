@@ -13,7 +13,7 @@ ch: 4
 backbone:
   # [from, number, module, args]
   - [-1, 1, Silence, []]  # 0-P1/2
-  - [0, 1, SilenceChannel, [3,4]]  # 1-P1/2
+  - [0, 1, SilenceChannel, [0,3]]  # 1-P1/2
   - [-1, 1, Conv, [16, 3, 1]] # 2
   - [-1, 1, nn.MaxPool2d, [2, 2, 0]] # 3-P1/2
   - [-1, 1, Conv, [32, 3, 1]]
@@ -44,7 +44,7 @@ backbone:
   - [-1, 1, nn.ZeroPad2d, [[0, 1, 0, 1]]] # 27
   - [-1, 1, nn.MaxPool2d, [2, 1, 0]] # 28
 
-  - [[8, 22], 1, Concat, [1]]  # cat backbone P4   29
+  - [[10, 24], 1, Concat, [1]]  # cat backbone P4   29
   - [[14, 28], 1, Concat, [1]]  # cat backbone P5   30
 
 # YOLOv3-tiny head
