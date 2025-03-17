@@ -1,0 +1,53 @@
+# parameters
+nc: 80  # number of classes
+
+scales: # model compound scaling constants, i.e. 'model=yolo12n.yaml' will call yolo12.yaml with scale 'n'
+  # [depth, width, max_channels]
+  s: [0.33 , 0.75, 1024] # summary: 272 layers, 9,284,096 parameters, 9,284,080 gradients, 21.7 GFLOPs
+
+ch: 4
+
+# ESNet
+backbone:
+  # [from, number, module, args]
+  [
+    [ -1, 1, Silence, [ ] ],  # 0-P1
+    [ 0, 1, SilenceChannel, [ 0,4 ] ],  # 1-P1
+    [ -1, 1, CBH, [ 48, 3, 2 ] ],    # 2-P2/4
+    [ -1, 1, ES_Bottleneck, [ 96, 2 ] ], # 3-P3/8
+    [ -1, 3, ES_Bottleneck, [ 96, 1 ] ], # 4
+    [ -1, 1, ES_Bottleneck, [ 192, 2 ] ], # 5-P5/16
+    [ -1, 7, ES_Bottleneck, [ 192, 1 ] ], # 6
+    [ -1, 1, ES_Bottleneck, [ 384, 2 ] ], # 7-P7/32
+    [ -1, 3, ES_Bottleneck, [ 384, 1 ] ], # 8
+  ]
+
+#  CSP-PAN
+head:
+  [ [ -1, 1, Conv, [ 192, 1, 1 ] ], # 9
+    [ [ -1, 8 ], 1, Concat, [ 1 ] ],  # cat backbone P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 11 (P3/8-small)
+
+    [ -1, 1, Conv, [ 192, 1, 1 ] ], # 12
+    [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ],
+    [ [ -1, 6 ], 1, Concat, [ 1 ] ],  # cat backbone P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 15
+
+    [ -1, 1, Conv, [ 192, 1, 1 ] ], # 16
+    [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ],
+    [ [ -1, 4 ], 1, Concat, [ 1 ] ],  # cat backbone P3
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 19 (P3/8-small)
+
+    [-1, 1, DWConvblock, [ 192, 5, 2 ]], # 20
+    [ [ -1, 16 ], 1, Concat, [ 1 ] ],  # cat head P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 22 (P4/16-medium)
+
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ],
+    [ [ -1, 12 ], 1, Concat, [ 1 ] ],  # cat head P5
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 25 (P5/32-large)
+
+    [ [ -1, 9 ], 1, ADD, [ 1 ] ],  # cat head P6
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ],  # 27 (P5/32-large)
+
+    [ [ 19, 22, 25, 27 ], 1, Detect, [ nc ] ],  # Detect(P3, P4, P5, P6)
+  ]

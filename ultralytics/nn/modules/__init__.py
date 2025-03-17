@@ -28,6 +28,9 @@ from .block import (
     ELAN1,ELAN_t,ELAN_H,ELAN,SPPCSPCSIM,SPPCSPC,MP_2,MP_1,YOLOv4_BottleneckCSP,YOLOv4_Bottleneck,
     PSA,CrossAttentionShared, CrossMLCA , TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,RecursionDiverseBranchBlock,
     C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
+    ConvNormLayer, BasicBlock, BottleNeck,Blocks,
+    CrossC2f ,  CrossC3k2,
+    CBH , ES_Bottleneck, DWConvblock,ADD,
     SPP,
     SPPELAN,
     SPPF,
@@ -169,4 +172,7 @@ __all__ = (
     "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",'YOLOv4_BottleneckCSP','YOLOv4_Bottleneck',
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention',
     "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",'C2f_DeepDBB','C2f_WDBB','C2f_DBB','C3k_RDBB','C2f_RDBB','C3k2_RDBB','A2C2f',
+    'ConvNormLayer', 'BasicBlock', 'BottleNeck', 'Blocks',
+    "CrossC2f", "CrossC3k2",
+    "CBH","ES_Bottleneck","DWConvblock","ADD",
 )

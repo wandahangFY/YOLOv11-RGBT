@@ -1,0 +1,68 @@
+# parameters
+nc: 80  # number of classes
+# 非原论文， 复现参考  https://github.com/iscyy/yoloair  （参数量和计算量比原论文大很多，后期再修改）
+scales: # model compound scaling constants, i.e. 'model=yolo12n.yaml' will call yolo12.yaml with scale 'n'
+  # [depth, width, max_channels]
+  s: [0.33 , 0.75, 1024] # summary: 272 layers, 9,284,096 parameters, 9,284,080 gradients, 21.7 GFLOPs
+
+ch: 4
+
+# ESNet
+backbone:
+  # [from, number, module, args]
+  [
+    [ -1, 1, Silence, [ ] ],  # 0-P1
+    [ 0, 1, SilenceChannel, [ 0,3 ] ],  # 1-P1
+    [ -1, 1, CBH, [ 48, 3, 2 ] ],    # 2-P2/4
+    [ -1, 1, ES_Bottleneck, [ 96, 2 ] ], # 3-P3/8
+    [ -1, 3, ES_Bottleneck, [ 96, 1 ] ], # 4
+    [ -1, 1, ES_Bottleneck, [ 192, 2 ] ], # 5-P5/16
+    [ -1, 7, ES_Bottleneck, [ 192, 1 ] ], # 6
+    [ -1, 1, ES_Bottleneck, [ 384, 2 ] ], # 7-P7/32
+    [ -1, 3, ES_Bottleneck, [ 384, 1 ] ], # 8
+
+    [ 0, 1, SilenceChannel, [ 3,4 ] ],  # 9-P1
+    [ -1, 1, CBH, [ 48, 3, 2 ] ],    # 10-P2/4
+    [ -1, 1, ES_Bottleneck, [ 96, 2 ] ], # 11-P3/8
+    [ -1, 3, ES_Bottleneck, [ 96, 1 ] ], # 12
+    [ -1, 1, ES_Bottleneck, [ 192, 2 ] ], # 13-P5/16
+    [ -1, 7, ES_Bottleneck, [ 192, 1 ] ], # 14
+    [ -1, 1, ES_Bottleneck, [ 384, 2 ] ], # 15-P7/32
+    [ -1, 3, ES_Bottleneck, [ 384, 1 ] ], # 16
+
+    [[4, 12], 1, Concat, [1]],  # cat backbone P3   17
+    [[6, 14], 1, Concat, [1]] , # cat backbone P4   18
+    [[8, 16], 1, Concat, [1]],  # cat backbone P5   19
+
+
+  ]
+
+#  CSP-PAN
+head:
+  [ [ -1, 1, Conv, [ 192, 1, 1 ] ], # 20
+    [ [ -1, 19 ], 1, Concat, [ 1 ] ],  # cat backbone P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 22 (P3/8-small)
+
+    [ -1, 1, Conv, [ 192, 1, 1 ] ], # 23
+    [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ],
+    [ [ -1, 18 ], 1, Concat, [ 1 ] ],  # cat backbone P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 26
+
+    [ -1, 1, Conv, [ 192, 1, 1 ] ], # 27
+    [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ],
+    [ [ -1, 17 ], 1, Concat, [ 1 ] ],  # cat backbone P3
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 30 (P3/8-small)
+
+    [-1, 1, DWConvblock, [ 192, 5, 2 ]], # 31
+    [ [ -1, 27 ], 1, Concat, [ 1 ] ],  # cat head P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 33 (P4/16-medium)
+
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ],
+    [ [ -1, 23 ], 1, Concat, [ 1 ] ],  # cat head P5
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 36 (P5/32-large)
+
+    [ [ -1, 20 ], 1, ADD, [ 1 ] ],  # cat head P6
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ],  # 38 (P5/32-large)
+
+    [ [ 30, 33, 36, 38 ], 1, Detect, [ nc ] ],  # Detect(P3, P4, P5, P6)
+  ]

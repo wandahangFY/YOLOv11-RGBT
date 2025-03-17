@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ultralytics.utils.torch_utils import fuse_conv_and_bn
-
+from collections import OrderedDict
 from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad
 from .transformer import TransformerBlock
 import math
@@ -53,7 +53,11 @@ __all__ = (
     "TorchVision",
     "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention','RecursionDiverseBranchBlock',
-    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",'C2f_DeepDBB','C2f_WDBB','C2f_DBB','C3k_RDBB','C2f_RDBB','C3k2_RDBB'
+    "C3k2_DeepDBB","C3k2_DBB","C3k2_WDBB",'C2f_DeepDBB','C2f_WDBB','C2f_DBB','C3k_RDBB','C2f_RDBB','C3k2_RDBB',
+    'ConvNormLayer', 'BasicBlock', 'BottleNeck', 'Blocks',
+    "CrossC2f", "CrossC3k2",
+    "CBH","ES_Bottleneck","DWConvblock","ADD",
+
 )
 
 
@@ -746,6 +750,63 @@ class C3k(C3):
         c_ = int(c2 * e)  # hidden channels
         # self.m = nn.Sequential(*(RepBottleneck(c_, c_, shortcut, g, k=(k, k), e=1.0) for _ in range(n)))
         self.m = nn.Sequential(*(Bottleneck(c_, c_, shortcut, g, k=(k, k), e=1.0) for _ in range(n)))
+
+
+class CrossC2f(nn.Module):
+    """Cross-Connected CSP Bottleneck with 2 convolutions and residual connections."""
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5, ratio=0.15):
+        super(CrossC2f, self).__init__()
+        self.c = int(c2 * e)  # hidden channels
+        self.ratio = ratio  # residual connection ratio
+        self.cv1 = Conv(c1 * 2, 2 * self.c, 1, 1)  # 1x1 conv for information interaction
+        self.cv2 = Conv(c1, c2, 1, 1)  # 修改输入通道数为 c1
+        self.cv3 = Conv(self.c * (n + 1), c1, 1, 1)  # 修改输入通道数为 self.c * (n + 1)
+        self.m1 = nn.ModuleList(Bottleneck(self.c, self.c, shortcut, g, k=((3, 3), (3, 3)), e=1.0) for _ in range(n))
+        self.m2 = nn.ModuleList(Bottleneck(self.c, self.c, shortcut, g, k=((3, 3), (3, 3)), e=1.0) for _ in range(n))
+
+    def forward(self, x):
+        """Forward pass through CrossC2f layer."""
+        x1, x2 = x  # unpack input
+        # print(x1.shape, x2.shape )
+        x_concat = torch.cat([x1, x2], dim=1)  # concatenate along channel dimension
+        y = self.cv1(x_concat).split(self.c, dim=1)  # split into two parts after 1x1 conv
+
+        # Cross the outputs
+        out_1 = [y[1]]  # Start with the second part of y
+        out_2 = [y[0]]  # Start with the first part of y
+
+        # Process out_1 and out_2 through their respective branches
+        for m1, m2 in zip(self.m1, self.m2):
+            out_1.append(m1(out_1[-1]))
+            out_2.append(m2(out_2[-1]))
+
+        # Concatenate the intermediate results of each branch
+        out_1 = torch.cat(out_1, dim=1)  # Concatenate all intermediate results of out_1
+        out_2 = torch.cat(out_2, dim=1)  # Concatenate all intermediate results of out_2
+
+        # Apply shared convolution to out_1 and out_2
+        out_1 = self.cv3(out_1)  # Apply shared conv to out_1
+        out_2 = self.cv3(out_2)  # Apply shared conv to out_2
+
+        # Add residual connections
+        out_1 = x1 * self.ratio + out_1
+        out_2 = x2 * self.ratio + out_2
+
+        # Combine out_1 and out_2 by addition instead of concatenation
+        out = out_1 + out_2  # Change from concatenation to addition
+
+        return [out_1, out_2, self.cv2(out)]
+
+class CrossC3k2(CrossC2f):
+    """Faster Implementation of CSP Bottleneck with 2 convolutions."""
+
+    def __init__(self, c1, c2, n=1, c3k=False, e=0.5, g=1, shortcut=True , ratio=0.15):
+        """Initializes the C3k2 module, a faster CSP Bottleneck with 2 convolutions and optional C3k blocks."""
+        super().__init__(c1, c2, n, shortcut, g, e)
+        # print('CrossC3k2:',c1, c2, n, c3k, e, g, shortcut , ratio)
+        self.m = nn.ModuleList(
+            C3k(self.c, self.c, 2, shortcut, g) if c3k else Bottleneck(self.c, self.c, shortcut, g) for _ in range(n)
+        )
 
 
 class RepVGGDW(torch.nn.Module):
@@ -2001,3 +2062,379 @@ class YOLOv4_BottleneckCSP(nn.Module):
         y1 = self.cv3(self.m(self.cv1(x)))
         y2 = self.cv2(x)
         return self.cv4(self.act(self.bn(torch.cat((y1, y2), dim=1))))
+
+
+################################### RT-DETR PResnet  来自B站魔鬼面具， 代码 主要用于基本的 rtdetr-r18 ###################################
+def get_activation(act: str, inpace: bool = True):
+    '''get activation
+    '''
+    act = act.lower()
+
+    if act == 'silu':
+        m = nn.SiLU()
+
+    elif act == 'relu':
+        m = nn.ReLU()
+
+    elif act == 'leaky_relu':
+        m = nn.LeakyReLU()
+
+    elif act == 'silu':
+        m = nn.SiLU()
+
+    elif act == 'gelu':
+        m = nn.GELU()
+
+    elif act is None:
+        m = nn.Identity()
+
+    elif isinstance(act, nn.Module):
+        m = act
+
+    else:
+        raise RuntimeError('')
+
+    if hasattr(m, 'inplace'):
+        m.inplace = inpace
+
+    return m
+
+
+class ConvNormLayer(nn.Module):
+    def __init__(self, ch_in, ch_out, kernel_size, stride, padding=None, bias=False, act=None):
+        super().__init__()
+        self.conv = nn.Conv2d(
+            ch_in,
+            ch_out,
+            kernel_size,
+            stride,
+            padding=(kernel_size - 1) // 2 if padding is None else padding,
+            bias=bias)
+        self.norm = nn.BatchNorm2d(ch_out)
+        self.act = nn.Identity() if act is None else get_activation(act)
+
+    def forward(self, x):
+        return self.act(self.norm(self.conv(x)))
+
+    def forward_fuse(self, x):
+        """Perform transposed convolution of 2D data."""
+        return self.act(self.conv(x))
+
+
+class BasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, ch_in, ch_out, stride, shortcut, act='relu', variant='d'):
+        super().__init__()
+
+        self.shortcut = shortcut
+
+        if not shortcut:
+            if variant == 'd' and stride == 2:
+                self.short = nn.Sequential(OrderedDict([
+                    ('pool', nn.AvgPool2d(2, 2, 0, ceil_mode=True)),
+                    ('conv', ConvNormLayer(ch_in, ch_out, 1, 1))
+                ]))
+            else:
+                self.short = ConvNormLayer(ch_in, ch_out, 1, stride)
+
+        self.branch2a = ConvNormLayer(ch_in, ch_out, 3, stride, act=act)
+        self.branch2b = ConvNormLayer(ch_out, ch_out, 3, 1, act=None)
+        self.act = nn.Identity() if act is None else get_activation(act)
+
+    def forward(self, x):
+        out = self.branch2a(x)
+        out = self.branch2b(out)
+        if self.shortcut:
+            short = x
+        else:
+            short = self.short(x)
+
+        out = out + short
+        out = self.act(out)
+
+        return out
+
+
+class BottleNeck(nn.Module):
+    expansion = 4
+
+    def __init__(self, ch_in, ch_out, stride, shortcut, act='relu', variant='d'):
+        super().__init__()
+
+        if variant == 'a':
+            stride1, stride2 = stride, 1
+        else:
+            stride1, stride2 = 1, stride
+
+        width = ch_out
+
+        self.branch2a = ConvNormLayer(ch_in, width, 1, stride1, act=act)
+        self.branch2b = ConvNormLayer(width, width, 3, stride2, act=act)
+        self.branch2c = ConvNormLayer(width, ch_out * self.expansion, 1, 1)
+
+        self.shortcut = shortcut
+        if not shortcut:
+            if variant == 'd' and stride == 2:
+                self.short = nn.Sequential(OrderedDict([
+                    ('pool', nn.AvgPool2d(2, 2, 0, ceil_mode=True)),
+                    ('conv', ConvNormLayer(ch_in, ch_out * self.expansion, 1, 1))
+                ]))
+            else:
+                self.short = ConvNormLayer(ch_in, ch_out * self.expansion, 1, stride)
+
+        self.act = nn.Identity() if act is None else get_activation(act)
+
+    def forward(self, x):
+        out = self.branch2a(x)
+        out = self.branch2b(out)
+        out = self.branch2c(out)
+
+        if self.shortcut:
+            short = x
+        else:
+            short = self.short(x)
+
+        out = out + short
+        out = self.act(out)
+
+        return out
+
+
+class Blocks(nn.Module):
+    def __init__(self, ch_in, ch_out, block, count, stage_num, act='relu', input_resolution=None, sr_ratio=None,
+                 kernel_size=None, kan_name=None, variant='d'):
+        super().__init__()
+
+        self.blocks = nn.ModuleList()
+        for i in range(count):
+            if input_resolution is not None and sr_ratio is not None:
+                self.blocks.append(
+                    block(
+                        ch_in,
+                        ch_out,
+                        stride=2 if i == 0 and stage_num != 2 else 1,
+                        shortcut=False if i == 0 else True,
+                        variant=variant,
+                        act=act,
+                        input_resolution=input_resolution,
+                        sr_ratio=sr_ratio)
+                )
+            elif kernel_size is not None:
+                self.blocks.append(
+                    block(
+                        ch_in,
+                        ch_out,
+                        stride=2 if i == 0 and stage_num != 2 else 1,
+                        shortcut=False if i == 0 else True,
+                        variant=variant,
+                        act=act,
+                        kernel_size=kernel_size)
+                )
+            elif kan_name is not None:
+                self.blocks.append(
+                    block(
+                        ch_in,
+                        ch_out,
+                        stride=2 if i == 0 and stage_num != 2 else 1,
+                        shortcut=False if i == 0 else True,
+                        variant=variant,
+                        act=act,
+                        kan_name=kan_name)
+                )
+            else:
+                self.blocks.append(
+                    block(
+                        ch_in,
+                        ch_out,
+                        stride=2 if i == 0 and stage_num != 2 else 1,
+                        shortcut=False if i == 0 else True,
+                        variant=variant,
+                        act=act)
+                )
+            if i == 0:
+                ch_in = ch_out * block.expansion
+
+    def forward(self, x):
+        out = x
+        for block in self.blocks:
+            out = block(out)
+        return out
+
+# PicoDet
+class CBH(nn.Module):
+    def __init__(self, num_channels, num_filters, filter_size, stride, num_groups=1):
+        super().__init__()
+        self.conv = nn.Conv2d(
+            num_channels,
+            num_filters,
+            filter_size,
+            stride,
+            padding=(filter_size - 1) // 2,
+            groups=num_groups,
+            bias=False)
+        self.bn = nn.BatchNorm2d(num_filters)
+        self.hardswish = nn.Hardswish()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.hardswish(x)
+        return x
+
+    def fuseforward(self, x):
+        return self.hardswish(self.conv(x))
+
+class ES_SEModule(nn.Module):
+    def __init__(self, channel, reduction=4):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv1 = nn.Conv2d(
+            in_channels=channel,
+            out_channels=channel // reduction,
+            kernel_size=1,
+            stride=1,
+            padding=0)
+        self.relu = nn.ReLU()
+        self.conv2 = nn.Conv2d(
+            in_channels=channel // reduction,
+            out_channels=channel,
+            kernel_size=1,
+            stride=1,
+            padding=0)
+        self.hardsigmoid = nn.Hardsigmoid()
+
+    def forward(self, x):
+        identity = x
+        x = self.avg_pool(x)
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.hardsigmoid(x)
+        out = identity * x
+        return out
+
+
+
+def channel_shuffle(x, groups):
+    batchsize, num_channels, height, width = x.data.size()
+    channels_per_group = num_channels // groups
+
+    # reshape
+    x = x.view(batchsize, groups,
+               channels_per_group, height, width)
+
+    x = torch.transpose(x, 1, 2).contiguous()
+
+    # flatten
+    x = x.view(batchsize, -1, height, width)
+
+    return x
+
+class ES_Bottleneck(nn.Module):
+    def __init__(self, inp, oup, stride):
+        super(ES_Bottleneck, self).__init__()
+
+        if not (1 <= stride <= 3):
+            raise ValueError('illegal stride value')
+        self.stride = stride
+
+        branch_features = oup // 2
+        # assert (self.stride != 1) or (inp == branch_features << 1)
+
+        if self.stride > 1:
+            self.branch1 = nn.Sequential(
+                self.depthwise_conv(inp, inp, kernel_size=3, stride=self.stride, padding=1),
+                nn.BatchNorm2d(inp),
+                nn.Conv2d(inp, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+                nn.BatchNorm2d(branch_features),
+                nn.Hardswish(inplace=True),
+            )
+
+        self.branch2 = nn.Sequential(
+            nn.Conv2d(inp if (self.stride > 1) else branch_features,
+                      branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(branch_features),
+            nn.Hardswish(inplace=True),
+            self.depthwise_conv(branch_features, branch_features, kernel_size=3, stride=self.stride, padding=1),
+            nn.BatchNorm2d(branch_features),
+            ES_SEModule(branch_features),
+            nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(branch_features),
+            nn.Hardswish(inplace=True),
+        )
+
+        self.branch3 = nn.Sequential(
+            GhostConv(branch_features, branch_features, 3, 1),
+            ES_SEModule(branch_features),
+            nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(branch_features),
+            nn.Hardswish(inplace=True),
+        )
+
+        self.branch4 = nn.Sequential(
+            self.depthwise_conv(oup, oup, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(oup),
+            nn.Conv2d(oup, oup, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(oup),
+            nn.Hardswish(inplace=True),
+        )
+
+
+    @staticmethod
+    def depthwise_conv(i, o, kernel_size=3, stride=1, padding=0, bias=False):
+        return nn.Conv2d(i, o, kernel_size, stride, padding, bias=bias, groups=i)
+
+    @staticmethod
+    def conv1x1(i, o, kernel_size=1, stride=1, padding=0, bias=False):
+        return nn.Conv2d(i, o, kernel_size, stride, padding, bias=bias)
+
+    def forward(self, x):
+        if self.stride == 1:
+            x1, x2 = x.chunk(2, dim=1)
+            x3 = torch.cat((x1, self.branch3(x2)), dim=1)
+            out = channel_shuffle(x3, 2)
+        elif self.stride == 2:
+            x1 = torch.cat((self.branch1(x), self.branch2(x)), dim=1)
+            out = self.branch4(x1)
+
+        return out
+
+
+
+# build DWConvblock
+# -------------------------------------------------------------------------
+class DWConvblock(nn.Module):
+    "Depthwise conv + Pointwise conv"
+
+    def __init__(self, in_channels, out_channels, k, s):
+        super(DWConvblock, self).__init__()
+        self.p = k // 2
+        self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size=k, stride=s, padding=self.p, groups=in_channels,
+                               bias=False)
+        self.bn1 = nn.BatchNorm2d(in_channels)
+        self.conv2 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = F.relu(x)
+        return x
+
+
+class ADD(nn.Module):
+    # Stortcut a list of tensors along dimension
+    def __init__(self, alpha=0.5):
+        super(ADD, self).__init__()
+        self.a = alpha
+
+    def forward(self, x):
+        x1, x2 = x[0], x[1]
+        return torch.add(x1, x2, alpha=self.a)
+
+# DWConvblock end
+# -------------------------------------------------------------------------
