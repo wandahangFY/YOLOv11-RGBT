@@ -66,8 +66,8 @@ dataset/  # Root directory of the dataset
 # KAIST.yaml
 
 # train and val data as 1) directory: path/images/
-train: dataset/visible/images/train  # 7601 images
-val:  dataset/visible/images/val # 2257 images
+train: dataset/train/visible/images  # 7601 images
+val:  dataset/val/visible/images # 2257 images
 
 # number of classes
 nc: 1

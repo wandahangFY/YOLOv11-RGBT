@@ -1,0 +1,98 @@
+# parameters
+nc: 80  # number of classes
+
+scales: # model compound scaling constants, i.e. 'model=yolo12n.yaml' will call yolo12.yaml with scale 'n'
+  # [depth, width, max_channels]
+  s: [0.33 , 0.75, 1024] # summary: 272 layers, 9,284,096 parameters, 9,284,080 gradients, 21.7 GFLOPs
+
+ch: 4
+
+# ESNet
+backbone:
+  # [from, number, module, args]
+  [
+    [ -1, 1, Silence, [ ] ],  # 0-P1
+    [ 0, 1, SilenceChannel, [ 0,3 ] ],  # 1-P1
+    [ -1, 1, CBH, [ 48, 3, 2 ] ],    # 2-P2/4
+    [ -1, 1, ES_Bottleneck, [ 96, 2 ] ], # 3-P3/8
+    [ -1, 3, ES_Bottleneck, [ 96, 1 ] ], # 4
+    [ -1, 1, ES_Bottleneck, [ 192, 2 ] ], # 5-P5/16
+    [ -1, 7, ES_Bottleneck, [ 192, 1 ] ], # 6
+    [ -1, 1, ES_Bottleneck, [ 384, 2 ] ], # 7-P7/32
+    [ -1, 3, ES_Bottleneck, [ 384, 1 ] ], # 8
+
+    [ 0, 1, SilenceChannel, [ 3,4 ] ],  # 9-P1
+    [ -1, 1, CBH, [ 48, 3, 2 ] ],    # 10-P2/4
+    [ -1, 1, ES_Bottleneck, [ 96, 2 ] ], # 11-P3/8
+    [ -1, 3, ES_Bottleneck, [ 96, 1 ] ], # 12
+    [ -1, 1, ES_Bottleneck, [ 192, 2 ] ], # 13-P5/16
+    [ -1, 7, ES_Bottleneck, [ 192, 1 ] ], # 14
+    [ -1, 1, ES_Bottleneck, [ 384, 2 ] ], # 15-P7/32
+    [ -1, 3, ES_Bottleneck, [ 384, 1 ] ], # 16
+
+  ]
+
+#  CSP-PAN
+head:
+  [
+    [ 8, 1, Conv, [ 192, 1, 1 ] ], # 17
+    [ [ -1, 8 ], 1, Concat, [ 1 ] ],  # cat backbone P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 19 (P3/8-small)
+
+    [ -1, 1, Conv, [ 192, 1, 1 ] ], # 20
+    [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ],
+    [ [ -1, 6 ], 1, Concat, [ 1 ] ],  # cat backbone P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 23
+
+    [ -1, 1, Conv, [ 192, 1, 1 ] ], # 24
+    [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ],
+    [ [ -1, 4 ], 1, Concat, [ 1 ] ],  # cat backbone P3
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 27 (P3/8-small)
+
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ], # 28
+    [ [ -1, 24 ], 1, Concat, [ 1 ] ],  # cat head P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 30 (P4/16-medium)
+
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ],
+    [ [ -1, 20 ], 1, Concat, [ 1 ] ],  # cat head P5
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 33 (P5/32-large)
+
+    [ [ -1, 17 ], 1, ADD, [ 1 ] ],  # cat head P6
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ],  # 35 (P5/32-large)
+
+
+    # infrared
+    [ 16, 1, Conv, [ 192, 1, 1 ] ], # 36
+    [ [ -1, 16 ], 1, Concat, [ 1 ] ],  # cat backbone P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 38 (P3/8-small)
+
+    [ -1, 1, Conv, [ 192, 1, 1 ] ], # 39
+    [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ],
+    [ [ -1, 14 ], 1, Concat, [ 1 ] ],  # cat backbone P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 42
+
+    [ -1, 1, Conv, [ 192, 1, 1 ] ], # 43
+    [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ],
+    [ [ -1, 12 ], 1, Concat, [ 1 ] ],  # cat backbone P3
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 46 (P3/8-small)
+
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ], # 47
+    [ [ -1, 43 ], 1, Concat, [ 1 ] ],  # cat head P4
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 49 (P4/16-medium)
+
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ],
+    [ [ -1, 39 ], 1, Concat, [ 1 ] ],  # cat head P5
+    [ -1, 1, BottleneckCSP, [ 192, False ] ],  # 52 (P5/32-large)
+
+    [ [ -1, 36 ], 1, ADD, [ 1 ] ],  # cat head P6
+    [ -1, 1, DWConvblock, [ 192, 5, 2 ] ],  # 54 (P5/32-large)
+
+    [ [ 27, 46 ], 1, Concat, [ 1 ] ],  # cat head P3  55
+    [ [ 30, 49 ], 1, Concat, [ 1 ] ] , # cat head P4  56
+    [ [ 33, 52 ], 1, Concat, [ 1 ] ] , # cat head P5  57
+    [ [ 35, 54 ], 1, Concat, [ 1 ] ] , # cat head P5  58
+#
+#
+#    [ [ 35 ], 1, Detect, [ nc ] ],  # Detect(P3, P4, P5, P6)
+    [ [ 55, 56, 57, 58 ], 1, Detect, [ nc ] ],  # Detect(P3, P4, P5, P6)
+  ]

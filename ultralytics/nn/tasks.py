@@ -17,17 +17,20 @@ from ultralytics.nn.modules import (
     C2PSA,
     C3,
     C3TR,
-    ELAN1, ELAN,ELAN_H,MP_1,MP_2,ELAN_t,SPPCSPCSIM,SPPELAN,SPPCSPC,
+    ELAN1, ELAN, ELAN_H, MP_1, MP_2, ELAN_t, SPPCSPCSIM, SPPELAN, SPPCSPC,
     OBB,
-    PSA,CrossAttentionShared,CrossMLCA,TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,RecursionDiverseBranchBlock,
-    C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
+    PSA, CrossAttentionShared, CrossMLCA, TensorSelector, CrossMLCAv2, DeepDiverseBranchBlock,
+    RecursionDiverseBranchBlock,
+    C3k2_DeepDBB, C3k2_DBB, C3k2_WDBB, C2f_DeepDBB, C2f_WDBB, C2f_DBB, C3k_RDBB, C2f_RDBB, C3k2_RDBB, A2C2f,
+    CrossC2f ,  CrossC3k2,
     SPP,
     SPPELAN,
     SPPF,
     AConv,
     ADown,
     Bottleneck,
-    BottleneckCSP,YOLOv4_BottleneckCSP,YOLOv4_Bottleneck,
+    BottleneckCSP, YOLOv4_BottleneckCSP, YOLOv4_Bottleneck,
+    CBH , ES_Bottleneck, DWConvblock,ADD,
     C2f,
     C2fAttn,
     C2fCIB,
@@ -51,7 +54,9 @@ from ultralytics.nn.modules import (
     HGBlock,
     HGStem,
     ImagePoolingAttn,
-    Index,Silence,SilenceChannel,ChannelToNumber,NumberToChannel,DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock,FeaturePyramidAggregationAttention,SilenceLayer,
+    Index, Silence, SilenceChannel, ChannelToNumber, NumberToChannel, DiverseBranchBlock, WideDiverseBranchBlock,
+    DeepDiverseBranchBlock, FeaturePyramidAggregationAttention, SilenceLayer,
+    ConvNormLayer, BasicBlock, BottleNeck, Blocks,
     Pose,
     RepC3,
     RepConv,
@@ -63,7 +68,7 @@ from ultralytics.nn.modules import (
     Segment,
     TorchVision,
     WorldDetect,
-    v10Detect, DetectDeepDBB,DetectWDBB ,DetectV8,DetectAux,
+    v10Detect, DetectDeepDBB, DetectWDBB, DetectV8, DetectAux,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -212,6 +217,10 @@ class BaseModel(torch.nn.Module):
                 if isinstance(m, RepVGGDW):
                     m.fuse()
                     m.forward = m.forward_fuse
+                if isinstance(m, ConvNormLayer):
+                    m.conv = fuse_conv_and_bn(m.conv, m.norm)  # update conv
+                    delattr(m, 'norm')  # remove batchnorm
+                    m.forward = m.forward_fuse  # update forward
                 if hasattr(m, 'switch_to_deploy'):
                     m.switch_to_deploy()
             self.info(verbose=verbose)
@@ -970,6 +979,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2,
             C2f,
             C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
+            ConvNormLayer,BasicBlock,BottleNeck,
+
             RepNCSPELAN4,
             ELAN1,ELAN,ELAN_H,ELAN_t,SPPCSPCSIM,SPPCSPC,MP_1,MP_2,RepConv,
             ADown,
@@ -1049,15 +1060,40 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 n = 1
         elif m is ResNetLayer:
             c2 = args[1] if args[3] else args[1] * 4
+        elif m is Blocks:
+            block_type = globals()[args[1]]
+            c1, c2 = ch[f], args[0] * block_type.expansion
+            args = [c1, args[0], block_type, *args[2:]]
         elif m is torch.nn.BatchNorm2d:
             args = [ch[f]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
+        elif m is ADD:
+            c2 = max(ch[x] for x in f)
         elif m is CrossAttentionShared:
             c2 =  args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             args = [c2]
+        elif m in frozenset({CrossC2f,CrossC3k2}):
+            c2 = args[0]
+            if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+
+            # ch_all=[ch[x] for x in f]
+            c1 = ch[f[0]]
+            args = [c1, c2,n, *args[1:]]
+            if scale in "mlx":
+                args[3] = True
+            n = 1
+            # print(args,ch_all)
+            # args = [c2]
+        elif m in [CBH, ES_Bottleneck, DWConvblock, ]:
+            c1, c2 = ch[f], args[0]
+            if c2 != nc:  # if not output
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+
+            args = [c1, c2, *args[1:]]
         elif m in frozenset({CrossMLCA,CrossMLCAv2}):
             c2 = args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
@@ -1096,7 +1132,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = 3
         else:
             c2 = ch[f]
-
+        # print(n)
         m_ = torch.nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
         t = str(m)[8:-2].replace("__main__.", "")  # module type
         m_.np = sum(x.numel() for x in m_.parameters())  # number params
