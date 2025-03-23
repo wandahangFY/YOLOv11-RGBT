@@ -4,7 +4,7 @@ from ultralytics import YOLO
 from ultralytics import RTDETR
 
 if __name__ == '__main__':
-    model = YOLO('ultralytics/cfg/models/PicoDet/PicoDet.yaml')
+    model = YOLO('ultralytics/cfg/models/11-RGBT-mine2/yolov8-RGBT-midfusion-P3-PGI.yaml')
     model.info(True,True)
     # model.load('yolov8n.pt') # loading pretrain weights
     # model.train(data=R'ultralytics/cfg/datasets/M3FD.yaml',

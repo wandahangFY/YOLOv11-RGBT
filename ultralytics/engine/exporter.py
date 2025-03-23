@@ -201,6 +201,7 @@ class Exporter:
             _callbacks (dict, optional): Dictionary of callback functions. Defaults to None.
         """
         self.args = get_cfg(cfg, overrides)
+        # print( self.args)
         if self.args.format.lower() in {"coreml", "mlmodel"}:  # fix attempt for protobuf<3.20.x errors
             os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # must run before TensorBoard callback
 
@@ -312,9 +313,11 @@ class Exporter:
         if tfjs:
             if ARM64 and LINUX:
                 raise SystemError("TensorFlow.js export not supported on ARM64 Linux")
-
+        channels=3
+        if self.args.channels is not None:
+            channels = self.args.channels
         # Input
-        im = torch.zeros(self.args.batch, 3, *self.imgsz).to(self.device)
+        im = torch.zeros(self.args.batch, channels, *self.imgsz).to(self.device)
         file = Path(
             getattr(model, "pt_path", None) or getattr(model, "yaml_file", None) or model.yaml.get("yaml_file", "")
         )
