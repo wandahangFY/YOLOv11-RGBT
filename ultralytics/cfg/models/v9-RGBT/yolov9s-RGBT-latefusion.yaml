@@ -64,11 +64,11 @@ head:
   - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 40
 
   - [-1, 1, AConv, [96]]
-  - [[-1, 37], 1, Concat, [1]] # cat head P4
+  - [[-1, 16], 1, Concat, [1]] # cat head P4
   - [-1, 1, RepNCSPELAN4, [192, 192, 96, 3]] # 43 (P4/16-medium)
 
   - [-1, 1, AConv, [128]]
-  - [[-1, 22], 1, Concat, [1]] # cat head P5
+  - [[-1, 35], 1, Concat, [1]] # cat head P5
   - [-1, 1, RepNCSPELAN4, [256, 256, 128, 3]] # 46 (P5/32-large)
 
   - [ [ 28, 40 ], 1, Concat, [ 1 ] ]  # cat head P5  47

@@ -3,7 +3,7 @@ warnings.filterwarnings('ignore')
 from ultralytics import RTDETR
 
 if __name__ == '__main__':
-    model = RTDETR('ultralytics/cfg/models/rt-detr-RGBT/rtdetr-resnet50-RGBT-midfusion.yaml')
+    model = RTDETR('ultralytics/cfg/models/rt-detr-RGBT/rtdetr-resnet50-RGBT-midfusion-P3.yaml')
     # model.load('') # loading pretrain weights
     model.train(data=R'ultralytics/cfg/datasets/LLVIP_r20.yaml',
                 cache=False,
@@ -20,5 +20,5 @@ if __name__ == '__main__':
                 use_simotm="RGBT",
                 channels=4,
                 project='runs/LLVIP_r20',
-                name='LLVIP_r20-rtdetr-resnet50-RGBT-midfusion-',
+                name='LLVIP_r20-rtdetr-resnet50-RGBT-midfusion-P3-',
                 )

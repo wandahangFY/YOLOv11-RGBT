@@ -1,0 +1,80 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# YOLOv10 object detection model. For Usage examples see https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolov10n.yaml' will call yolov10.yaml with scale 'n'
+  # [depth, width, max_channels]
+  m: [0.67, 0.75, 768]
+
+ch: 4
+
+backbone:
+  # [from, repeats, module, args]
+  - [ -1, 1, Silence, [ ] ]  # 0-P1/2
+  - [ 0, 1, SilenceChannel, [ 0,3 ] ]  # 0-P1/2
+  - [-1, 1, Conv, [64, 3, 2]] # 2-P1/2
+  - [-1, 1, Conv, [128, 3, 2]] # 3-P2/4
+  - [-1, 3, C2f, [128, True]]
+  - [-1, 1, Conv, [256, 3, 2]] # 5-P3/8
+  - [-1, 6, C2f, [256, True]]
+  - [-1, 1, SCDown, [512, 3, 2]] # 7-P4/16
+  - [-1, 6, C2f, [512, True]]
+  - [-1, 1, SCDown, [1024, 3, 2]] # 9-P5/32
+  - [-1, 3, C2fCIB, [1024, True]]
+  - [-1, 1, SPPF, [1024, 5]] # 11
+  - [-1, 1, PSA, [1024]] # 12
+
+  - [ 0, 1, SilenceChannel, [ 3,4 ] ]  # 13-P1/2
+  - [-1, 1, Conv, [64, 3, 2]] # 14-P1/2
+  - [-1, 1, Conv, [128, 3, 2]] # 15-P2/4
+  - [-1, 3, C2f, [128, True]]
+  - [-1, 1, Conv, [256, 3, 2]] # 17-P3/8
+  - [-1, 6, C2f, [256, True]]
+  - [-1, 1, SCDown, [512, 3, 2]] # 19-P4/16
+  - [-1, 6, C2f, [512, True]]
+  - [-1, 1, SCDown, [1024, 3, 2]] # 21-P5/32
+  - [-1, 3, C2fCIB, [1024, True]]
+  - [-1, 1, SPPF, [1024, 5]] # 23
+  - [-1, 1, PSA, [1024]] # 24
+
+# YOLOv10.0n head
+head:
+  - [ 12, 1, nn.Upsample, [ None, 2, 'nearest' ] ]
+  - [ [ -1, 8 ], 1, Concat, [ 1 ] ]  # cat backbone P4
+  - [ -1, 3, C2f, [ 512 ] ]  # 27
+
+  - [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ]
+  - [ [ -1, 6 ], 1, Concat, [ 1 ] ]  # cat backbone P3
+  - [ -1, 3, C2f, [ 256 ] ]  # 30 (P3/8-small)
+
+  - [ -1, 1, Conv, [ 256, 3, 2 ] ]
+  - [ [ -1, 27 ], 1, Concat, [ 1 ] ]  # cat head P4
+  - [-1, 3, C2fCIB, [512, True]] # 33 (P4/16-medium)
+
+  - [ -1, 1, Conv, [ 512, 3, 2 ] ]
+  - [ [ -1, 12 ], 1, Concat, [ 1 ] ]  # cat head P5
+  - [-1, 3, C2fCIB, [1024, True]]  # 36 (P5/32-large)
+
+
+  - [ 24, 1, nn.Upsample, [ None, 2, 'nearest' ] ]
+  - [ [ -1, 20 ], 1, Concat, [ 1 ] ]  # cat backbone P4
+  - [ -1, 3, C2f, [ 512 ] ]  # 39
+
+  - [ -1, 1, nn.Upsample, [ None, 2, 'nearest' ] ]
+  - [ [ -1, 18 ], 1, Concat, [ 1 ] ]  # cat backbone P3
+  - [ -1, 3, C2f, [ 256 ] ]  # 42 (P3/8-small)
+
+  - [ -1, 1, Conv, [ 256, 3, 2 ] ]
+  - [ [ -1, 39 ], 1, Concat, [ 1 ] ]  # cat head P4
+  - [-1, 3, C2fCIB, [512, True]] # 45 (P4/16-medium)
+
+  - [ -1, 1, Conv, [ 512, 3, 2 ] ]
+  - [ [ -1, 23 ], 1, Concat, [ 1 ] ]  # cat head P5
+  - [-1, 3, C2fCIB, [1024, True]]  # 48 (P5/32-large)
+
+  - [ [ 30, 42 ], 1, Concat, [ 1 ] ]  # cat head P5  49
+  - [ [ 33, 45 ], 1, Concat, [ 1 ] ]  # cat head P5  50
+  - [ [ 36, 48 ], 1, Concat, [ 1 ] ]  # cat head P5  51
+
+  - [[49, 50, 51], 1, v10Detect, [nc]] # Detect(P3, P4, P5)

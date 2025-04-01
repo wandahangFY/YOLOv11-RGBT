@@ -1,0 +1,78 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# YOLOv9m object detection model. For Usage examples see https://docs.ultralytics.com/models/yolov9
+# 603 layers, 20216160 parameters, 77.9 GFLOPs
+
+# Parameters
+nc: 80 # number of classes
+ch: 4
+# GELAN backbone
+backbone:
+
+  - [ -1, 1, Silence, [ ] ]  # 0-P1/2
+    # visible
+  - [ 0, 1, SilenceChannel, [ 0,3 ] ]  # 1-P1/2
+  - [-1, 1, Conv, [32, 3, 2]] # 2-P1/2
+  - [-1, 1, Conv, [64, 3, 2]] # 3-P2/4
+  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 1]] # 4
+  - [-1, 1, AConv, [240]] # 5-P3/8
+  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 6
+  - [-1, 1, AConv, [360]] # 7-P4/16
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 8
+  - [-1, 1, AConv, [480]] # 9-P5/32
+  - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 10
+  - [-1, 1, SPPELAN, [480, 240]] # 11
+
+  - [ 0, 1, SilenceChannel, [ 3,4 ] ]  # 12-P1/2
+  - [-1, 1, Conv, [32, 3, 2]] # 13-P1/2
+  - [-1, 1, Conv, [64, 3, 2]] # 14-P2/4
+  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 1]] # 15
+  - [-1, 1, AConv, [240]] # 16-P3/8
+  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 17
+  - [-1, 1, AConv, [360]] # 18-P4/16
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 19
+  - [-1, 1, AConv, [480]] # 20-P5/32
+  - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 21
+  - [-1, 1, SPPELAN, [480, 240]] # 22
+
+head:
+  # visible
+  - [11, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 8], 1, Concat, [1]] # cat backbone P4
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 25
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 6], 1, Concat, [1]] # cat backbone P3
+  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 28
+
+  - [-1, 1, AConv, [180]]
+  - [[-1, 25], 1, Concat, [1]] # cat head P4
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 31 (P4/16-medium)
+
+  - [-1, 1, AConv, [240]]
+  - [[-1, 11], 1, Concat, [1]] # cat head P5
+  - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 34 (P5/32-large)
+
+
+  # infrared
+  - [22, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 19], 1, Concat, [1]] # cat backbone P4
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 37
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 17], 1, Concat, [1]] # cat backbone P3
+  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 40
+
+  - [-1, 1, AConv, [180]]
+  - [[-1, 36], 1, Concat, [1]] # cat head P4
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 43 (P4/16-medium)
+
+  - [-1, 1, AConv, [240]]
+  - [[-1, 35], 1, Concat, [1]] # cat head P5
+  - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 46 (P5/32-large)
+
+
+  - [ [ 28, 40 ], 1, Concat, [ 1 ] ]  # cat head P5  47
+  - [ [ 31, 43 ], 1, Concat, [ 1 ] ]  # cat head P5  48
+  - [ [ 34, 46 ], 1, Concat, [ 1 ] ]  # cat head P5  49
+
+  - [[47, 48, 49], 1, Detect, [nc]] # Detect(P3, P4 P5)
