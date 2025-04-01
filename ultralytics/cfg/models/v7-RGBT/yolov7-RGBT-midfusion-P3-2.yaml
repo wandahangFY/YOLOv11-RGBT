@@ -1,0 +1,76 @@
+# parameters
+nc: 80  # number of classes
+depth_multiple: 1.0  # model depth multiple
+width_multiple: 1.0  # layer channel multiple
+
+
+ch: 4
+# yolov7 backbone
+backbone:
+  # [from, number, module, args]
+  [
+   [ -1, 1, Silence, [ ] ] , # 0-P1/2
+   # visible
+   [ 0, 1, SilenceChannel, [ 0,3 ] ] , # 1-P1/2
+   [-1, 1, Conv, [32, 3, 1]],   # 2-p0/1
+   [-1, 1, Conv, [64, 3, 2]],   # 3-P1/2
+   [-1, 1, Conv, [64, 3, 1]],   # 4-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 5-P2/4
+
+   [-1, 1, ELAN, [256]],  # 6-P2/4
+
+   [-1, 1, MP_1, [256]],  # 7-P3/8 256-256
+   [-1, 1, ELAN, [512]],  # 8-P3/8
+
+
+  # infrared
+   [ 0, 1, SilenceChannel, [ 3,4 ] ] , # 9-P1/2
+   [-1, 1, Conv, [32, 3, 1]],   # 10-p0/1
+   [-1, 1, Conv, [64, 3, 2]],   # 11-P1/2
+   [-1, 1, Conv, [64, 3, 1]],   # 12-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 13-P2/4
+
+   [-1, 1, ELAN, [256]],  # 14-P2/4
+   [-1, 1, MP_1, [256]],  # 15-P3/8 256-256
+   [-1, 1, ELAN, [512]],  # 16-P3/8
+
+   [ [ 8, 16 ], 1, Concat, [ 1 ] ], # cat backbone P3   17
+
+   [-1, 1, MP_1, [1024]],  # 18-P4/16 512+512  ->  1024  可以考虑加一层卷积  1024  ->  512  后续的所有层数+1 即 P3
+   [-1, 1, ELAN, [1024]], # 19-P4/16
+
+   [-1, 1, MP_1, [1024]], # 20-P5/32
+   [-1, 1, ELAN, [1024, True]],  # 21-P5/32 1024-1024
+   [-1, 1, SPPCSPC, [512]], # 22
+  ]
+
+# yolov7 head
+head:
+  [
+   [-1, 1, Conv, [256, 1, 1]], # 23
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [19, 1, Conv, [256, 1, 1]], # 25 route backbone P4
+   [[-1, -2], 1, Concat, [1]], # 26
+   [-1, 1, ELAN_H, [256]], # 27 512-256
+
+   [-1, 1, Conv, [128, 1, 1]], # 28
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']], # 29
+   [17, 1, Conv, [128, 1, 1]], # 30 route backbone P3
+   [[-1, -2], 1, Concat, [1]], # 31
+   [-1, 1, ELAN_H, [128]], # 32 256-128
+
+   [-1, 1, MP_2, [256]], # 33 128-256
+   [[-1, 27], 1, Concat, [1]], # 34 route backbone P4
+   [-1, 1, ELAN_H, [256]], # 35 512-256
+
+   [-1, 1, MP_2, [512]], # 36 256-512
+   [[-1, 22], 1, Concat, [1]], # 37 route backbone P5
+   [-1, 1, ELAN_H, [512]], # 38 1024-512
+
+   [32, 1, RepConv, [256, 3, 1]],  # 39 128-256
+   [35, 1, RepConv, [512, 3, 1]],  # 40 256-512
+   [38, 1, RepConv, [1024, 3, 1]], # 41 512-1024
+
+   [[39,40,41], 1, Detect, [nc]], # Detect(P3, P4, P5)
+  ]
+

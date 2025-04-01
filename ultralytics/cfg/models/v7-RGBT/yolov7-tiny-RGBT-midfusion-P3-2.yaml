@@ -1,0 +1,78 @@
+# parameters
+nc: 80  # number of classes
+#depth_multiple: 1.0  # model depth multiple
+#width_multiple: 1.0  # layer channel multiple
+
+
+ch: 4
+# yolov7-tiny backbone
+backbone:
+  # [from, number, module, args] c2, k=1, s=1, p=None, g=1, act=True
+  [
+   [ -1, 1, Silence, [ ] ] , # 0-P1/2
+   # visible
+   [ 0, 1, SilenceChannel, [ 0,3] ] , # 1-P1/2
+   [-1, 1, Conv, [32, 3, 2, None, 1]],  # 2-P1/2
+
+   [-1, 1, Conv, [64, 3, 2, None, 1]],  # 3-P2/4
+   [-1, 1, ELAN_t, [64, 1, 1, None, 1]],  # 4
+
+   [-1, 1, MP_1, [64]],  # 5-P3/8
+   [-1, 1, ELAN_t, [128, 1, 1, None, 1]],  # 6
+
+   # infrared
+   [ 0, 1, SilenceChannel, [ 3,4 ] ] , # 7-P1/2
+   [ -1, 1, Conv, [ 32, 3, 2, None, 1 ] ],  # 8-P1/2
+
+   [ -1, 1, Conv, [ 64, 3, 2, None, 1 ] ],  # 9-P2/4
+   [ -1, 1, ELAN_t, [ 64, 1, 1, None, 1 ] ],  # 10
+
+   [ -1, 1, MP_1, [ 64 ] ],  # 11-P3/8
+   [ -1, 1, ELAN_t, [ 128, 1, 1, None, 1 ] ],  # 12
+
+
+   [ [ 6, 12 ], 1, Concat, [ 1 ] ], # cat backbone P3   13
+
+   #
+   [ -1, 1, MP_1, [ 256 ] ],  # 14-P4/16
+   [ -1, 1, ELAN_t, [ 256, 1, 1, None, 1 ] ],  # 15
+    ##
+   [ -1, 1, MP_1, [ 256 ] ],  # 16-P5/32
+   [ -1, 1, ELAN_t, [ 512, 1, 1, None, 1 ] ],  # 17
+
+   [-1, 1, SPPCSPCSIM, [256]], # 18
+  ]
+
+# yolov7-tiny head
+head:
+#  [
+  [
+   [-1, 1, Conv, [128, 1, 1, None, 1]], # 19
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [15, 1, Conv, [128, 1, 1, None, 1]], # route backbone P4
+   [[-1, -2], 1, Concat, [1]], #
+   [-1, 1, ELAN_t, [128, 1, 1, None, 1]],  # 23
+
+   [-1, 1, Conv, [64, 1, 1, None, 1]],
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [13, 1, Conv, [64, 1, 1, None, 1]], # route backbone P3
+   [[-1, -2], 1, Concat, [1]],
+   [-1, 1, ELAN_t, [64, 1, 1, None, 1]],  # 29
+
+   [-1, 1, Conv, [128, 3, 2, None, 1]],
+   [[-1, 23], 1, Concat, [1]],
+   [-1, 1, ELAN_t, [128, 1, 1, None, 1]],  # 32
+
+   [-1, 1, Conv, [256, 3, 2, None, 1]],
+   [[-1, 18], 1, Concat, [1]],
+   [-1, 1, ELAN_t, [256, 1, 1, None, 1]],  # 35
+#
+   [28, 1, Conv, [128, 3, 1, None, 1]], #36
+   [31, 1, Conv, [256, 3, 1, None, 1]], #37
+   [34, 1, Conv, [512, 3, 1, None, 1]], #38
+
+#   [-1, 1, Classify, [nc]] # Classify
+   [[35,36,37], 1, Detect, [nc]] # Detect(P3, P4, P5)
+#   [[11], 1, Detect, [nc]] # Detect(P3, P4, P5)
+#   [[26], 1, Segment, [nc, 32, 256]] # Detect(P3, P4, P5)
+  ]
