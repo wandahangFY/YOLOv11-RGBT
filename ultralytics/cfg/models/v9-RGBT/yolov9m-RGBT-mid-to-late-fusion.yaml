@@ -20,40 +20,50 @@ backbone:
   - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 8
   - [-1, 1, AConv, [480]] # 9-P5/32
   - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 10
+  - [-1, 1, SPPELAN, [480, 240]] # 11
 
-
-  - [ 0, 1, SilenceChannel, [ 3,4 ] ]  # 11-P1/2
-  - [-1, 1, Conv, [32, 3, 2]] # 12-P1/2
-  - [-1, 1, Conv, [64, 3, 2]] # 13-P2/4
-  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 1]] # 14
-  - [-1, 1, AConv, [240]] # 15-P3/8
-  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 16
-  - [-1, 1, AConv, [360]] # 17-P4/16
-  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 18
-  - [-1, 1, AConv, [480]] # 19-P5/32
-  - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 20
-
-  - [[6, 16], 1, Concat, [1]]  # cat backbone P3   21
-  - [[8, 18], 1, Concat, [1]]  # cat backbone P4   22
-  - [[10, 20], 1, Concat, [1]]  # cat backbone P5    23
-
-  - [-1, 1, SPPELAN, [480, 240]] # 24
+  - [ 0, 1, SilenceChannel, [ 3,4 ] ]  # 12-P1/2
+  - [-1, 1, Conv, [32, 3, 2]] # 13-P1/2
+  - [-1, 1, Conv, [64, 3, 2]] # 14-P2/4
+  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 1]] # 15
+  - [-1, 1, AConv, [240]] # 16-P3/8
+  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 17
+  - [-1, 1, AConv, [360]] # 18-P4/16
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 19
+  - [-1, 1, AConv, [480]] # 20-P5/32
+  - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 21
+  - [-1, 1, SPPELAN, [480, 240]] # 22
 
 head:
-  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 22], 1, Concat, [1]] # cat backbone P4
-  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 27
+  # visible
+  - [11, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 8], 1, Concat, [1]] # cat backbone P4
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 25
 
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 23], 1, Concat, [1]] # cat backbone P3
-  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 30
+  - [[-1, 6], 1, Concat, [1]] # cat backbone P3
+  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 28
+
+  # infrared
+  - [22, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 19], 1, Concat, [1]] # cat backbone P4
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 31
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 17], 1, Concat, [1]] # cat backbone P3
+  - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 34
+
+  - [ [ 11, 22 ], 1, Concat, [ 1 ] ]  # cat head P5  35
+  - [ [ 27, 33 ], 1, Concat, [ 1 ] ]  # cat head P5  36
+  - [ [ 30, 36 ], 1, Concat, [ 1 ] ]  # cat head P5  37
+
 
   - [-1, 1, AConv, [180]]
-  - [[-1, 27], 1, Concat, [1]] # cat head P4
-  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 33 (P4/16-medium)
+  - [[-1, 36], 1, Concat, [1]] # cat head P4
+  - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 40 (P4/16-medium)
 
   - [-1, 1, AConv, [240]]
-  - [[-1, 24], 1, Concat, [1]] # cat head P5
-  - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 36 (P5/32-large)
+  - [[-1, 35], 1, Concat, [1]] # cat head P5
+  - [-1, 1, RepNCSPELAN4, [480, 480, 240, 1]] # 43 (P5/32-large)
 
-  - [[30, 33, 36], 1, Detect, [nc]] # Detect(P3, P4, P5)
+  - [[37, 40, 43], 1, Detect, [nc]] # Detect(P3, P4, P5)

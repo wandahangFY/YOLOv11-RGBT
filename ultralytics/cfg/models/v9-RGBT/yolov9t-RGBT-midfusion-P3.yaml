@@ -22,7 +22,7 @@ backbone:
   - [-1, 1, ELAN1, [32, 32, 16]] # 10
   - [-1, 1, AConv, [64]] # 11-P3/8
   - [-1, 1, RepNCSPELAN4, [64, 64, 32, 3]] # 12
-  - [[6, 16], 1, Concat, [1]]  # cat backbone P3   13
+  - [[6, 12], 1, Concat, [1]]  # cat backbone P3   13
 
   - [-1, 1, AConv, [96]] # 14-P4/16
   - [-1, 1, RepNCSPELAN4, [96, 96, 48, 3]] # 15

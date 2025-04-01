@@ -14,6 +14,8 @@ ch: 4
 backbone:
   # [from, repeats, module, args]
   - [-1, 1, Silence, []]  # 0-P1/2
+
+  # visible
   - [0, 1, SilenceChannel, [0,3]]  # 1-P1/2
   - [-1, 1, Conv, [32, 3, 1]] # 2
   - [-1, 1, Conv, [64, 3, 2]] # 3-P1/2
@@ -22,46 +24,45 @@ backbone:
   - [-1, 2, Bottleneck, [128]]
   - [-1, 1, Conv, [256, 3, 2]] # 7-P3/8
   - [-1, 8, Bottleneck, [256]]
-  - [-1, 1, Conv, [512, 3, 2]] # 9-P4/16
-  - [-1, 8, Bottleneck, [512]]
-  - [-1, 1, Conv, [1024, 3, 2]] # 11-P5/32
-  - [-1, 4, Bottleneck, [1024]] # 12
 
-  - [0, 1, SilenceChannel, [3,4]]  # 13-P1/2
-  - [-1, 1, Conv, [32, 3, 1]] # 14
-  - [-1, 1, Conv, [64, 3, 2]] # 15-P1/2
+
+  # infrared
+  - [0, 1, SilenceChannel, [3,4]]  # 9-P1/2
+  - [-1, 1, Conv, [32, 3, 1]] # 10
+  - [-1, 1, Conv, [64, 3, 2]] # 11-P1/2
   - [-1, 1, Bottleneck, [64]]
-  - [-1, 1, Conv, [128, 3, 2]] # 17-P2/4
+  - [-1, 1, Conv, [128, 3, 2]] # 13-P2/4
   - [-1, 2, Bottleneck, [128]]
-  - [-1, 1, Conv, [256, 3, 2]] # 19-P3/8
-  - [-1, 8, Bottleneck, [256]]
-  - [-1, 1, Conv, [512, 3, 2]] # 21-P4/16
+  - [-1, 1, Conv, [256, 3, 2]] # 15-P3/8
+  - [-1, 8, Bottleneck, [256]] # 16
+
+  - [[8, 16], 1, Concat, [1]]  # cat backbone P3   17
+
+  - [-1, 1, Conv, [512, 3, 2]] # 18-P4/16
   - [-1, 8, Bottleneck, [512]]
-  - [-1, 1, Conv, [1024, 3, 2]] # 23-P5/32
-  - [-1, 4, Bottleneck, [1024]] # 24
-  - [[8, 20], 1, Concat, [1]]  # cat backbone P3   25
-  - [[10, 22], 1, Concat, [1]]  # cat backbone P4   26
-  - [[12, 24], 1, Concat, [1]]  # cat backbone P5   27
+  - [-1, 1, Conv, [1024, 3, 2]] # 20-P5/32
+  - [-1, 4, Bottleneck, [1024]] # 21
+
 # YOLOv3 head
 head:
   - [-1, 1, Bottleneck, [1024, False]]
   - [-1, 1, Conv, [512, 1, 1]]
   - [-1, 1, Conv, [1024, 3, 1]]
   - [-1, 1, Conv, [512, 1, 1]]
-  - [-1, 1, Conv, [1024, 3, 1]] # 32 (P5/32-large)
+  - [-1, 1, Conv, [1024, 3, 1]] # 26 (P5/32-large)
 
   - [-2, 1, Conv, [256, 1, 1]]
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 26], 1, Concat, [1]] # cat backbone P4
+  - [[-1, 20], 1, Concat, [1]] # cat backbone P4
   - [-1, 1, Bottleneck, [512, False]]
   - [-1, 1, Bottleneck, [512, False]]
   - [-1, 1, Conv, [256, 1, 1]]
-  - [-1, 1, Conv, [512, 3, 1]] # 39 (P4/16-medium)
+  - [-1, 1, Conv, [512, 3, 1]] # 33 (P4/16-medium)
 
   - [-2, 1, Conv, [128, 1, 1]]
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 25], 1, Concat, [1]] # cat backbone P3
+  - [[-1, 19], 1, Concat, [1]] # cat backbone P3
   - [-1, 1, Bottleneck, [256, False]]
-  - [-1, 2, Bottleneck, [256, False]] # 44 (P3/8-small)
+  - [-1, 2, Bottleneck, [256, False]] # 38 (P3/8-small)
 
-  - [[44, 39, 32], 1, Detect, [nc]] # Detect(P3, P4, P5)
+  - [[38, 33, 26], 1, Detect, [nc]] # Detect(P3, P4, P5)

@@ -75,4 +75,5 @@ head:
   - [ [ 31, 43 ], 1, Concat, [ 1 ] ]  # cat head P5  48
   - [ [ 34, 46 ], 1, Concat, [ 1 ] ]  # cat head P5  49
 
-  - [[47, 48, 49], 1, Detect, [nc]] # Detect(P3, P4 P5)
+
+  - [[28, 31, 34,40,43,46], 1, Detect, [nc]] # Detect(P3, P4 P5)

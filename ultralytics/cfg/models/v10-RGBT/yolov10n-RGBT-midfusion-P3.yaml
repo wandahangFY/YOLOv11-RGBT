@@ -27,7 +27,7 @@ backbone:
   - [ -1, 1, Conv, [ 256, 3, 2 ] ] # 11-P3/8
   - [ -1, 6, C2f, [ 256, True ] ] # 12
 
-  - [[6, 16], 1, Concat, [1]]  # cat backbone P3   13
+  - [[6, 12], 1, Concat, [1]]  # cat backbone P3   13
 
   - [ -1, 1, SCDown, [ 512, 3, 2 ] ] # 14-P4/16
   - [ -1, 6, C2f, [ 512, True ] ]

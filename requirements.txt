@@ -11,11 +11,13 @@ scipy>=1.4.1
 torch>=1.7.0
 torchvision>=0.8.1
 tqdm>=4.64.0
+thop
 
-# Util ------------------------------------------- 注释里面的内容均为  暂时不需要的，后续用到再下载
-#eonips>=0.7
-#timm>=0.9
-#efficientnet-pytorch>=0.7.1
+
+# Util ------------------------------------------- 注意力机制相关
+einops>=0.7
+timm>=0.9
+efficientnet-pytorch>=0.7.1
 
 # Logging -------------------------------------
 # tensorboard>=2.13.0
@@ -43,6 +45,6 @@ seaborn>=0.11.0
 psutil  # system utilization
 # thop>=0.1.1  # FLOPs computation
 # ipython  # interactive notebook
-# albumentations>=1.0.3
+albumentations>=1.0.3
 # pycocotools>=2.0.6  # COCO mAP
 # roboflow
