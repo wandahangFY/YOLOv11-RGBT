@@ -314,6 +314,7 @@ Wan, D.; Lu, R.; Hu, B.; Yin, J.; Shen, S.; xu, T.; Lang, X. YOLO-MIF: Improved 
 - [YOLOv7](https://github.com/WongKinYiu/yolov7)
 - [Albumentations Data Augmentation Library](https://github.com/albumentations-team/albumentations)
 - Reparameterization validation code references from Handwritten AI's reparameterization course
+- [YOLO-AIR](https://github.com/iscyy/yoloair)
 
 ## Closing Remarks
 Thank you for your interest and support in this project. The authors strive to provide the best quality and service, but there is still much room for improvement. If you encounter any issues or have any suggestions, please let us know.
