@@ -1,0 +1,89 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Hyper-YOLO object detection model with N3-N5 outputs. 
+# hyper-yolo 系列的原始文件来自于魔鬼面具的YOLOv11项目
+# Parameters
+nc: 80  # number of classes
+scales: # model compound scaling constants, i.e. 'model=hyper-yolon.yaml' will call hyper-yolo.yaml with scale 'n'
+  # [depth, width, max_channels, threshold]
+  n: [0.33, 0.25, 1024, 6]
+  s: [0.33, 0.50, 1024, 8]
+  m: [0.67, 0.75, 768, 10]
+  l: [1.00, 1.00, 512, 10]
+  x: [1.00, 1.25, 512, 12]
+
+ch: 4
+# Hyper-YOLO backbone
+backbone:
+  - [-1, 1, Silence, []]  # 0-P1/2
+
+  # visible
+  - [0, 1, SilenceChannel, [0,3]]  # 1-P1/2
+  - [-1, 1, Conv, [64, 3, 2]]  # 2-B1/2
+  - [-1, 1, Conv, [128, 3, 2]]  # 3
+  - [-1, 3, MANet, [128, True, 2, 3]] # 4-B2/4
+  - [-1, 1, Conv, [256, 3, 2]]  # 5
+  - [-1, 6, MANet, [256, True, 2, 5]] # 6-B3/8
+  - [-1, 1, Conv, [512, 3, 2]]  # 7
+  - [-1, 6, MANet, [512, True, 2, 5]] # 8-B4/16
+  - [-1, 1, Conv, [1024, 3, 2]]  # 9-P5/32
+  - [-1, 3, MANet, [1024, True, 2, 3]] # 10
+
+  # infrared
+  - [0, 1, SilenceChannel, [3,4]]  # 11-P1/2
+  - [-1, 1, Conv, [64, 3, 2]]  # 12-B1/2
+  - [-1, 1, Conv, [128, 3, 2]]  # 13
+  - [-1, 3, MANet, [128, True, 2, 3]] # 14-B2/4
+  - [-1, 1, Conv, [256, 3, 2]]  # 15
+  - [-1, 6, MANet, [256, True, 2, 5]] # 16-B3/8
+  - [-1, 1, Conv, [512, 3, 2]]  # 17
+  - [-1, 6, MANet, [512, True, 2, 5]] # 18-B4/16
+  - [-1, 1, Conv, [1024, 3, 2]]  # 19-P5/32
+  - [-1, 3, MANet, [1024, True, 2, 3]] # 20
+
+  - [[6, 16], 1, Concat, [1]]  # cat backbone B3   21
+  - [[8, 18], 1, Concat, [1]]  # cat backbone B4   22
+  - [[10, 20], 1, Concat, [1]]  # cat backbone P5   23
+
+  - [-1, 1, SPPF, [1024, 5]]  # 24-B5/32
+
+# Hyper-YOLO head
+head:
+  # Semantic Collecting
+  - [2, 1, nn.AvgPool2d, [8, 8, 0]] # 25
+  - [4, 1, nn.AvgPool2d, [4, 4, 0]] # 26
+  - [6, 1, nn.AvgPool2d, [2, 2, 0]] # 27
+
+  # infrared
+  - [12, 1, nn.AvgPool2d, [8, 8, 0]] # 28
+  - [14, 1, nn.AvgPool2d, [4, 4, 0]] # 29
+  - [16, 1, nn.AvgPool2d, [2, 2, 0]] # 30
+
+  - [24, 1, nn.Upsample, [None, 2, 'nearest']] # 31
+  - [[25,26,27,28,29,30,31], 1, Concat, [1]]  # cat 32
+
+  # Hypergraph Computation
+  - [-1, 1, Conv, [512, 1, 1]] # 33
+  - [-1, 1, HyperComputeModule, [512]] # 34
+  - [-1, 3, MANet, [512, True, 2, 3]] # 35
+#
+  # Semantic Collecting
+  - [-1, 1, nn.AvgPool2d, [2, 2, 0]] # 36
+  - [[-1,24], 1, Concat, [1]]  # cat 37
+  - [-1, 1, Conv, [1024, 1, 1]] # 38 P5
+#
+  - [[35, 22], 1, Concat, [1]]  # cat 39
+  - [-1, 3, MANet, [512, False, 2, 3]]  # 40 P4
+
+  - [35, 1, nn.Upsample, [None, 2, 'nearest']] # 41
+  - [[-1, 21], 1, Concat, [1]]  # cat 42
+  - [-1, 3, MANet, [256, False, 2, 3]]  # 43 P3/N3
+#
+  - [-1, 1, Conv, [256, 3, 2]] # 44
+  - [[-1, 40], 1, Concat, [1]]  # 45 cat
+  - [-1, 3, MANet, [512, False, 2, 3]]  # 46 N4
+#
+  - [-1, 1, Conv, [512, 3, 2]] # 47
+  - [[-1, 38], 1, Concat, [1]]  # 48 cat
+  - [-1, 3, C2f, [1024, False]]  # 49 N5
+  - [[43, 46, 49], 1, Detect, [nc]]  # Detect(N3, N4, N5)
+#  - [[10], 1, Detect, [nc]]  # Detect(N3, N4, N5)

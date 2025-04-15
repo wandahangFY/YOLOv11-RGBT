@@ -345,6 +345,8 @@ Wan, D.; Lu, R.; Hu, B.; Yin, J.; Shen, S.; xu, T.; Lang, X. YOLO-MIF: Improved 
 - [YOLOv7](https://github.com/WongKinYiu/yolov7)
 - [Albumentations 数据增强库](https://github.com/albumentations-team/albumentations)
 - 重参数化验证部分代码参考 手写AI 的重参数化课程
+- [YOLO-AIR](https://github.com/iscyy/yoloair)
+
 ## 结尾
 感谢您对本项目的关注和支持。作者尽力提供最好的质量和服务，但仍然有很多需要改进之处。如果您发现任何问题或有任何建议，请告诉我。
 另外，本项目目前由我个人维护，难免存在疏漏和错误。如果您发现了任何问题，欢迎提出建议和意见。

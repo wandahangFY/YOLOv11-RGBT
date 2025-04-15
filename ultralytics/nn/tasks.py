@@ -9,6 +9,8 @@ from pathlib import Path
 
 import thop
 import torch
+from timm.models.focalnet import FocalModulation
+
 
 from ultralytics.nn.modules import (
     AIFI,
@@ -19,10 +21,10 @@ from ultralytics.nn.modules import (
     C3TR,
     ELAN1, ELAN, ELAN_H, MP_1, MP_2, ELAN_t, SPPCSPCSIM, SPPELAN, SPPCSPC,
     OBB,
-    PSA, CrossAttentionShared, CrossMLCA, TensorSelector, CrossMLCAv2, DeepDiverseBranchBlock,
-    RecursionDiverseBranchBlock,
+    PSA, CrossAttentionShared, CrossMLCA, TensorSelector, CrossMLCAv2, DeepDiverseBranchBlock, CBAM,
+    RecursionDiverseBranchBlock,MANet, HyperComputeModule, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star,
     C3k2_DeepDBB, C3k2_DBB, C3k2_WDBB, C2f_DeepDBB, C2f_WDBB, C2f_DBB, C3k_RDBB, C2f_RDBB, C3k2_RDBB, A2C2f,
-    CrossC2f ,  CrossC3k2,
+    CrossC2f, CrossC3k2,
     SPP,
     SPPELAN,
     SPPF,
@@ -30,7 +32,7 @@ from ultralytics.nn.modules import (
     ADown,
     Bottleneck,
     BottleneckCSP, YOLOv4_BottleneckCSP, YOLOv4_Bottleneck,
-    CBH , ES_Bottleneck, DWConvblock,ADD,
+    CBH, ES_Bottleneck, DWConvblock, ADD,
     C2f,
     C2fAttn,
     C2fCIB,
@@ -69,7 +71,9 @@ from ultralytics.nn.modules import (
     TorchVision,
     WorldDetect,
     v10Detect, DetectDeepDBB, DetectWDBB, DetectV8, DetectAux,
+    Detect_LSCD, Segment_LSCD, Pose_LSCD, OBB_LSCD,
 )
+
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
 from ultralytics.utils.loss import (
@@ -91,6 +95,24 @@ from ultralytics.utils.torch_utils import (
     scale_img,
     time_sync,
 )
+
+from ultralytics.nn.modules.attention import *
+from ultralytics.nn.modules.ppyolo import (
+    CSPResNet_CBS, CSPResNet, ConvBNLayer, ResSPP, CoordConv,
+    ResNet50vd, ResNet50vd_dcn, ResNet101vd, PPConvBlock, Res2net50,
+
+)
+
+
+# 代码格式参考 B站 魔鬼面具
+DETECT_CLASS = (Detect,  Detect_LSCD, DetectAux, DetectDeepDBB, DetectWDBB,DetectV8)
+V10_DETECT_CLASS = (v10Detect,)
+SEGMENT_CLASS = (Segment, )
+POSE_CLASS = (Pose, Pose_LSCD,)
+OBB_CLASS = (OBB, OBB_LSCD,)
+C3K2_CLASS = (C3k2)
+
+
 
 
 class BaseModel(torch.nn.Module):
@@ -263,7 +285,7 @@ class BaseModel(torch.nn.Module):
         """
         self = super()._apply(fn)
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, DetectDeepDBB, DetectWDBB,DetectV8,DetectAux)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, DETECT_CLASS):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             m.stride = fn(m.stride)
             m.anchors = fn(m.anchors)
             m.strides = fn(m.strides)
@@ -329,7 +351,8 @@ class DetectionModel(BaseModel):
 
         # Build strides
         m = self.model[-1]  # Detect()
-        if isinstance(m, (Detect, DetectDeepDBB, DetectWDBB,DetectV8,DetectAux)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (DETECT_CLASS + SEGMENT_CLASS + POSE_CLASS + OBB_CLASS + V10_DETECT_CLASS)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+            # s = 256  # 2x min stride
             s = 256  # 2x min stride
             m.inplace = self.inplace
 
@@ -339,7 +362,7 @@ class DetectionModel(BaseModel):
                     return self.forward(x)[:3]
                 if self.end2end:
                     return self.forward(x)["one2many"]
-                return self.forward(x)[0] if isinstance(m, (Segment, Pose, OBB)) else self.forward(x)
+                return self.forward(x)[0] if isinstance(m, SEGMENT_CLASS + POSE_CLASS + OBB_CLASS) else self.forward(x)
 
             m.stride = torch.tensor([s / x.shape[-2] for x in _forward(torch.zeros(1, ch, s, s))])  # forward
             self.stride = m.stride
@@ -949,7 +972,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         if not scale:
             scale = tuple(scales.keys())[0]
             LOGGER.warning(f"WARNING ⚠️ no model scale passed. Assuming scale='{scale}'.")
-        depth, width, max_channels = scales[scale]
+        if len(scales[scale]) == 3:
+            depth, width, max_channels = scales[scale]
+        elif len(scales[scale]) == 4:
+            depth, width, max_channels, threshold = scales[scale]
 
     if act:
         Conv.default_act = eval(act)  # redefine default activation, i.e. Conv.default_act = torch.nn.SiLU()
@@ -980,7 +1006,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2f,
             C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
             ConvNormLayer,BasicBlock,BottleNeck,
-
+            MANet, MANet_FasterBlock, MANet_FasterCGLU,MANet_Star,
             RepNCSPELAN4,
             ELAN1,ELAN,ELAN_H,ELAN_t,SPPCSPCSIM,SPPCSPC,MP_1,MP_2,RepConv,
             ADown,
@@ -1006,6 +1032,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2,
             C2f,
             C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
+            MANet, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star,
             C2fAttn,
             C3,
             C3TR,
@@ -1017,7 +1044,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2PSA,
         }
     )
+    # print(globals())
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
+        # print(m)
         m = (
             getattr(torch.nn, m[3:])
             if "nn." in m
@@ -1030,7 +1059,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 with contextlib.suppress(ValueError):
                     args[j] = locals()[a] if a in locals() else ast.literal_eval(a)
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
-        if m in base_modules:
+        if m in base_modules :
             c1, c2 = ch[f], args[0]
             # print(m,args)
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
@@ -1040,10 +1069,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 args[2] = int(max(round(min(args[2], max_channels // 2 // 32)) * width, 1) if args[2] > 1 else args[2])
 
             args = [c1, c2, *args[1:]]
-            if m in repeat_modules:
+            if m in repeat_modules :
                 args.insert(2, n)  # number of repeats
                 n = 1
-            if m is C3k2:  # for M/L/X sizes
+            if m in (C3k2,):  # for M/L/X sizes
                 legacy = False
                 if scale in "mlx":
                     args[3] = True
@@ -1064,6 +1093,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             block_type = globals()[args[1]]
             c1, c2 = ch[f], args[0] * block_type.expansion
             args = [c1, args[0], block_type, *args[2:]]
+        elif m in [CSPResNet_CBS,CSPResNet,ConvBNLayer,ResSPP,CoordConv]:
+            c2 = args[1]
+        elif m in [ResNet50vd,ResNet50vd_dcn,ResNet101vd,PPConvBlock,Res2net50]:
+            c2 = args[0]
         elif m is torch.nn.BatchNorm2d:
             args = [ch[f]]
         elif m is Concat:
@@ -1099,6 +1132,20 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             args = [c2]
+        elif m in {EMA, BiLevelRoutingAttention, BiLevelRoutingAttention_nchw,
+                   TripletAttention, CoordAtt, CBAM, BAMBlock, LSKBlock,
+                   SEAttention, CPCA, FocalModulation, EfficientAttention, MPCA, deformable_LKA,
+                   EffectiveSEModule, LSKA, SegNext_Attention, DAttention, MLCA,
+                   FocusedLinearAttention, LocalWindowAttention, CAA, ELA, AFGCAttention}:
+            c2 = ch[f]
+            args = [c2, *args]
+            # print(args)
+        elif m in {SimAM}:
+            c2 = ch[f]
+        elif m is HyperComputeModule:
+            c1, c2 = ch[f], args[0]
+            c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [c1, c2, threshold]
         elif m is TensorSelector:
             c2 = args[1]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
@@ -1106,11 +1153,18 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [args[0]]
             n = 1
             # print(args,c2)
-        elif m in frozenset({Detect,DetectDeepDBB,DetectWDBB,DetectV8,DetectAux, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect}):
+        elif m in ((WorldDetect,ImagePoolingAttn) + DETECT_CLASS + V10_DETECT_CLASS + SEGMENT_CLASS + POSE_CLASS + OBB_CLASS):
             args.append([ch[x] for x in f])
-            if m is Segment:
+            if m in SEGMENT_CLASS:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
-            if m in {Detect, Segment, Pose, OBB,DetectDeepDBB,DetectWDBB,DetectV8,DetectAux}:
+                if m in (Segment_LSCD,  ):
+                    args[3] = make_divisible(min(args[3], max_channels) * width, 8)
+            if m in (Detect_LSCD, ):
+                args[1] = make_divisible(min(args[1], max_channels) * width, 8)
+            if m in (Pose_LSCD,
+                     OBB_LSCD, ):
+                args[2] = make_divisible(min(args[2], max_channels) * width, 8)
+            if m in DETECT_CLASS + V10_DETECT_CLASS + SEGMENT_CLASS + POSE_CLASS + OBB_CLASS:
                 m.legacy = legacy
         elif m is RTDETRDecoder:  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])

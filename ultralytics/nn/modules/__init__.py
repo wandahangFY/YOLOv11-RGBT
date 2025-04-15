@@ -29,6 +29,8 @@ from .block import (
     PSA,CrossAttentionShared, CrossMLCA , TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,RecursionDiverseBranchBlock,
     C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
     ConvNormLayer, BasicBlock, BottleNeck,Blocks,
+
+    MANet, HyperComputeModule, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star,
     CrossC2f ,  CrossC3k2,
     CBH , ES_Bottleneck, DWConvblock,ADD,
     SPP,
@@ -82,7 +84,7 @@ from .conv import (
 
 from .rep_block import  DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock,FeaturePyramidAggregationAttention,SilenceLayer
 
-from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect, DetectDeepDBB, DetectWDBB,DetectV8,DetectAux
+from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect, DetectDeepDBB, DetectWDBB,DetectV8,DetectAux,Detect_LSCD, Segment_LSCD, Pose_LSCD, OBB_LSCD
 from .transformer import (
     AIFI,
     MLP,
@@ -175,4 +177,5 @@ __all__ = (
     'ConvNormLayer', 'BasicBlock', 'BottleNeck', 'Blocks',
     "CrossC2f", "CrossC3k2",
     "CBH","ES_Bottleneck","DWConvblock","ADD",
+    'MANet', 'HyperComputeModule', 'MANet_FasterBlock', 'MANet_FasterCGLU', 'MANet_Star',
 )
