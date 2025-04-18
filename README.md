@@ -14,6 +14,9 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 - use_simotm: SimOTMBBS # (str) The training mode used, such as BGR, RGBT, Gray, etc.
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
+## News:
+- 2025-04-18  Add CTF [CTF](https://github.com/DocF/multispectral-object-detection)
+
 
 ## Supported image formats（use_simotm）:
 1. uint8: 'Gray'  Single-channel 8-bit gray-scale image.  channels=1 ,  yaml   ch: 1 
@@ -315,6 +318,7 @@ Wan, D.; Lu, R.; Hu, B.; Yin, J.; Shen, S.; xu, T.; Lang, X. YOLO-MIF: Improved 
 - [Albumentations Data Augmentation Library](https://github.com/albumentations-team/albumentations)
 - Reparameterization validation code references from Handwritten AI's reparameterization course
 - [YOLO-AIR](https://github.com/iscyy/yoloair)
+- [CTF](https://github.com/DocF/multispectral-object-detection)
 
 ## Closing Remarks
 Thank you for your interest and support in this project. The authors strive to provide the best quality and service, but there is still much room for improvement. If you encounter any issues or have any suggestions, please let us know.

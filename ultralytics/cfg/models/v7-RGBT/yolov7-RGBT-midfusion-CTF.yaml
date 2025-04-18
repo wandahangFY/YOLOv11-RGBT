@@ -1,0 +1,86 @@
+# parameters
+nc: 80  # number of classes
+depth_multiple: 1.0  # model depth multiple
+width_multiple: 1.0  # layer channel multiple
+
+
+ch: 4
+# yolov7 backbone
+backbone:
+  # [from, number, module, args]
+  [
+   [ -1, 1, Silence, [ ] ] , # 0-P1/2
+   # visible
+   [ 0, 1, SilenceChannel, [ 0,3 ] ] , # 1-P1/2
+   [-1, 1, Conv, [32, 3, 1]],   # 2-p0/1
+   [-1, 1, Conv, [64, 3, 2]],   # 3-P1/2
+   [-1, 1, Conv, [64, 3, 1]],   # 4-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 5-P2/4
+
+   [-1, 1, ELAN, [256]],  # 6-P2/4
+
+   [-1, 1, MP_1, [256]],  # 7-P3/8 256-256
+   [-1, 1, ELAN, [512]],  # 8-P3/8
+
+   [-1, 1, MP_1, [512]],  # 9-P4/16 512-512
+   [-1, 1, ELAN, [1024]], # 10-P4/16
+
+   [-1, 1, MP_1, [1024]], # 11-P5/32
+   [-1, 1, ELAN, [1024, True]],  # 12-P5/32 1024-1024
+
+  # infrared
+   [ 0, 1, SilenceChannel, [ 3,4 ] ] , # 13-P1/2
+   [-1, 1, Conv, [32, 3, 1]],   # 14-p0/1
+   [-1, 1, Conv, [64, 3, 2]],   # 15-P1/2
+   [-1, 1, Conv, [64, 3, 1]],   # 16-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 17-P2/4
+
+   [-1, 1, ELAN, [256]],  # 18-P2/4
+
+   [-1, 1, MP_1, [256]],  # 19-P3/8 256-256
+   [-1, 1, ELAN, [512]],  # 20-P3/8
+
+   [-1, 1, MP_1, [512]],  # 21-P4/16 512-512
+   [-1, 1, ELAN, [1024]], # 22-P4/16
+
+   [-1, 1, MP_1, [1024]], # 23-P5/32
+   [-1, 1, ELAN, [1024, True]],  # 24-P5/32 1024-1024
+
+
+   [ [ 8, 20 ], 1, CrossTransformerFusion, [  ] ], # cat backbone P3   25
+   [ [ 10, 22 ], 1, CrossTransformerFusion, [  ] ],  # cat backbone P4   26
+   [ [ 12, 24 ], 1, CrossTransformerFusion, [  ] ], # cat backbone P5    27
+
+   [-1, 1, SPPCSPC, [512]], # 28
+  ]
+
+# yolov7 head
+head:
+  [
+   [-1, 1, Conv, [256, 1, 1]], # 29
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [26, 1, Conv, [256, 1, 1]], # 31 route backbone P4
+   [[-1, -2], 1, Concat, [1]], # 32
+   [-1, 1, ELAN_H, [256]], # 33 512-256
+
+   [-1, 1, Conv, [128, 1, 1]], # 34
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']], # 35
+   [25, 1, Conv, [128, 1, 1]], # 36 route backbone P3
+   [[-1, -2], 1, Concat, [1]], # 37
+   [-1, 1, ELAN_H, [128]], # 38 256-128
+
+   [-1, 1, MP_2, [256]], # 39 128-256
+   [[-1, 33], 1, Concat, [1]], # 40 route backbone P4
+   [-1, 1, ELAN_H, [256]], # 41 512-256
+
+   [-1, 1, MP_2, [512]], # 42 256-512
+   [[-1, 28], 1, Concat, [1]], # 42 route backbone P5
+   [-1, 1, ELAN_H, [512]], # 43 1024-512
+
+   [38, 1, RepConv, [256, 3, 1]],  # 44 128-256
+   [41, 1, RepConv, [512, 3, 1]],  # 45 256-512
+   [43, 1, RepConv, [1024, 3, 1]], # 46 512-1024
+
+   [[44,45,46], 1, Detect, [nc]], # Detect(P3, P4, P5)
+  ]
+

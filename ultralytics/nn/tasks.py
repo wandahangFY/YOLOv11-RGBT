@@ -25,6 +25,8 @@ from ultralytics.nn.modules import (
     RecursionDiverseBranchBlock,MANet, HyperComputeModule, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star,
     C3k2_DeepDBB, C3k2_DBB, C3k2_WDBB, C2f_DeepDBB, C2f_WDBB, C2f_DBB, C3k_RDBB, C2f_RDBB, C3k2_RDBB, A2C2f,
     CrossC2f, CrossC3k2,
+    GPT,Add2,CrossTransformerFusion,
+
     SPP,
     SPPELAN,
     SPPF,
@@ -1108,6 +1110,17 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             args = [c2]
+        elif m is GPT:
+            c2 =  args[0]
+            if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [c2]
+        elif m is Add2:
+            c2 = ch[f[0]]
+            # if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
+            #     c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [c2, args[1]]
+
         elif m in frozenset({CrossC2f,CrossC3k2}):
             c2 = args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
@@ -1152,6 +1165,11 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             args = [args[0]]
             n = 1
+            # print(args,c2)
+        elif m is CrossTransformerFusion:
+            c1 = ch[f[0]]  # input channels
+            c2 = sum(ch[x] for x in f)  # output channels
+            args = [c1, *args]
             # print(args,c2)
         elif m in ((WorldDetect,ImagePoolingAttn) + DETECT_CLASS + V10_DETECT_CLASS + SEGMENT_CLASS + POSE_CLASS + OBB_CLASS):
             args.append([ch[x] for x in f])

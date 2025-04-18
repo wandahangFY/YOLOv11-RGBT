@@ -3,7 +3,7 @@ warnings.filterwarnings('ignore')
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO('ultralytics/cfg/models/ppyoloe-RGBT/ppyoloe-s-midfusion-P3.yaml')
+    model = YOLO('ultralytics/cfg/models/11-RGBT/yolo11n-RGBT-midfusion-CFT3_add.yaml')
     # model.info(True,True)
     # model.load('yolov8n.pt') # loading pretrain weights
     model.train(data=R'ultralytics/cfg/datasets/LLVIP_r20.yaml',
@@ -21,5 +21,5 @@ if __name__ == '__main__':
                 use_simotm="RGBT",
                 channels=4,
                 project='runs/LLVIP_r20',
-                name='LLVIP_r20-ppyoloe-s-midfusion-P3-',
+                name='LLVIP_r20-yolo11n-RGBT-midfusion-CFT3_add-',
                 )

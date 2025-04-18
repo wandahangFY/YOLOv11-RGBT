@@ -15,6 +15,10 @@
 
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
+## News:
+- 2025-04-18  添加了 CTF [CTF](https://github.com/DocF/multispectral-object-detection)
+
+
 ## 支持图像格式（use_simotm）：
 1. uint8: 'Gray' 单通道8位灰度图像。   channels=1 ,  yaml   ch: 1 
 2. uint16: 'Gray16bit' 单通道16位灰度图像。 channels=1 ,  yaml   ch: 1 
@@ -346,6 +350,8 @@ Wan, D.; Lu, R.; Hu, B.; Yin, J.; Shen, S.; xu, T.; Lang, X. YOLO-MIF: Improved 
 - [Albumentations 数据增强库](https://github.com/albumentations-team/albumentations)
 - 重参数化验证部分代码参考 手写AI 的重参数化课程
 - [YOLO-AIR](https://github.com/iscyy/yoloair)
+- [CTF](https://github.com/DocF/multispectral-object-detection)
+
 
 ## 结尾
 感谢您对本项目的关注和支持。作者尽力提供最好的质量和服务，但仍然有很多需要改进之处。如果您发现任何问题或有任何建议，请告诉我。
