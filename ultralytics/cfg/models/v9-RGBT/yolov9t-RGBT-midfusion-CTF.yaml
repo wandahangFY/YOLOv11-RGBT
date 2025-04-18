@@ -1,0 +1,55 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# YOLOv9t object detection model. For Usage examples see https://docs.ultralytics.com/models/yolov9
+# 917 layers, 2128720 parameters, 8.5 GFLOPs
+
+# Parameters
+nc: 80 # number of classes
+ch: 4
+# GELAN backbone
+backbone:
+  - [ -1, 1, Silence, [ ] ]  # 0-P1/2
+  - [ 0, 1, SilenceChannel, [ 0,3 ] ]  # 1-P1/2
+  - [-1, 1, Conv, [16, 3, 2]] # 2-P1/2
+  - [-1, 1, Conv, [32, 3, 2]] # 3-P2/4
+  - [-1, 1, ELAN1, [32, 32, 16]] # 4
+  - [-1, 1, AConv, [64]] # 5-P3/8
+  - [-1, 1, RepNCSPELAN4, [64, 64, 32, 3]] # 6
+  - [-1, 1, AConv, [96]] # 7-P4/16
+  - [-1, 1, RepNCSPELAN4, [96, 96, 48, 3]] # 8
+  - [-1, 1, AConv, [128]] # 9-P5/32
+  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 10
+
+  - [ 0, 1, SilenceChannel, [ 3,4 ] ]  # 11-P1/2
+  - [-1, 1, Conv, [16, 3, 2]] # 12-P1/2
+  - [-1, 1, Conv, [32, 3, 2]] # 13-P2/4
+  - [-1, 1, ELAN1, [32, 32, 16]] # 14
+  - [-1, 1, AConv, [64]] # 15-P3/8
+  - [-1, 1, RepNCSPELAN4, [64, 64, 32, 3]] # 16
+  - [-1, 1, AConv, [96]] # 17-P4/16
+  - [-1, 1, RepNCSPELAN4, [96, 96, 48, 3]] # 18
+  - [-1, 1, AConv, [128]] # 19-P5/32
+  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 20
+
+  - [[6, 16], 1, CrossTransformerFusion, []]  # cat backbone P3   21
+  - [[8, 18], 1, CrossTransformerFusion, []]  # cat backbone P4   22
+  - [[10, 20], 1, CrossTransformerFusion, []]  # cat backbone P5    23
+  - [-1, 1, SPPELAN, [128, 64]] # 24
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 22], 1, Concat, [1]] # cat backbone P4
+  - [-1, 1, RepNCSPELAN4, [96, 96, 48, 3]] # 27
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 21], 1, Concat, [1]] # cat backbone P3
+  - [-1, 1, RepNCSPELAN4, [64, 64, 32, 3]] # 30
+
+  - [-1, 1, AConv, [48]]
+  - [[-1, 27], 1, Concat, [1]] # cat head P4
+  - [-1, 1, RepNCSPELAN4, [96, 96, 48, 3]] # 33 (P4/16-medium)
+
+  - [-1, 1, AConv, [64]]
+  - [[-1, 24], 1, Concat, [1]] # cat head P5
+  - [-1, 1, RepNCSPELAN4, [128, 128, 64, 3]] # 36 (P5/32-large)
+
+  - [[30, 33, 36], 1, Detect, [nc]] # Detect(P3, P4, P5)

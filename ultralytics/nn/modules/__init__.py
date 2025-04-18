@@ -29,7 +29,7 @@ from .block import (
     PSA,CrossAttentionShared, CrossMLCA , TensorSelector,CrossMLCAv2,DeepDiverseBranchBlock,RecursionDiverseBranchBlock,
     C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
     ConvNormLayer, BasicBlock, BottleNeck,Blocks,
-
+    GPT,Add2,Add,CrossTransformerFusion,
     MANet, HyperComputeModule, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star,
     CrossC2f ,  CrossC3k2,
     CBH , ES_Bottleneck, DWConvblock,ADD,
@@ -178,4 +178,6 @@ __all__ = (
     "CrossC2f", "CrossC3k2",
     "CBH","ES_Bottleneck","DWConvblock","ADD",
     'MANet', 'HyperComputeModule', 'MANet_FasterBlock', 'MANet_FasterCGLU', 'MANet_Star',
+
+    "GPT","Add2","Add","CrossTransformerFusion",
 )

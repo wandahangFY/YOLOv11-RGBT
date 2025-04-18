@@ -4,12 +4,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torch.nn import init, Sequential
 from ultralytics.utils.torch_utils import fuse_conv_and_bn
 from collections import OrderedDict
 from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad
 from .transformer import TransformerBlock
 import math
+import numpy as np
+
 from .rep_block import  DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock,FeaturePyramidAggregationAttention,RecursionDiverseBranchBlock
 __all__ = (
     "DFL",
@@ -58,7 +60,7 @@ __all__ = (
     "CrossC2f", "CrossC3k2",
     "CBH","ES_Bottleneck","DWConvblock","ADD",
     'MANet', 'HyperComputeModule', 'MANet_FasterBlock', 'MANet_FasterCGLU', 'MANet_Star',
-    ""
+    "GPT","Add2","Add","CrossTransformerFusion",
 
 )
 
@@ -2815,3 +2817,497 @@ class HyperComputeModule(nn.Module):
 
 ######################################## Hyper-YOLO end ########################################
 
+
+
+# https://github.com/DocF/multispectral-object-detection   修改版
+##################################  CFT   start ############################################
+# 多头交叉注意力机制
+# Multi-Head Cross Attention
+class MultiHeadCrossAttention(nn.Module):
+    def __init__(self, model_dim, num_heads):
+        super(MultiHeadCrossAttention, self).__init__()
+        self.num_heads = num_heads
+        self.head_dim = model_dim // num_heads
+        # 断言model_dim必须能被num_heads整除
+        # Assert that model_dim must be divisible by num_heads
+        assert (self.head_dim * num_heads == model_dim), "model_dim must be divisible by num_heads"
+
+        # 可见光特征的查询、键、值线性变换
+        # Linear transformations for query, key, value of visual features
+        self.query_vis = nn.Linear(model_dim, model_dim)
+        self.key_vis = nn.Linear(model_dim, model_dim)
+        self.value_vis = nn.Linear(model_dim, model_dim)
+
+        # 红外特征的查询、键、值线性变换
+        # Linear transformations for query, key, value of infrared features
+        self.query_inf = nn.Linear(model_dim, model_dim)
+        self.key_inf = nn.Linear(model_dim, model_dim)
+        self.value_inf = nn.Linear(model_dim, model_dim)
+
+        # 可见光特征的输出线性变换
+        # Output linear transformation for visual features
+        self.fc_out_vis = nn.Linear(model_dim, model_dim)
+        # 红外特征的输出线性变换
+        # Output linear transformation for infrared features
+        self.fc_out_inf = nn.Linear(model_dim, model_dim)
+
+    def forward(self, vis, inf):
+        batch_size, seq_length, model_dim = vis.shape
+
+        # 可见光特征生成查询、键、值
+        # Generate query, key, value for visual features
+        Q_vis = self.query_vis(vis)
+        K_vis = self.key_vis(vis)
+        V_vis = self.value_vis(vis)
+
+        # 红外特征生成查询、键、值
+        # Generate query, key, value for infrared features
+        Q_inf = self.query_inf(inf)
+        K_inf = self.key_inf(inf)
+        V_inf = self.value_inf(inf)
+
+        # 为多头注意力重塑张量
+        # Reshape tensors for multi-head attention
+        Q_vis = Q_vis.view(batch_size, seq_length, self.num_heads, self.head_dim).transpose(1,
+                                                                                            2)  # B, N, C --> B, n_h, N, d_h
+        K_vis = K_vis.view(batch_size, seq_length, self.num_heads, self.head_dim).transpose(1, 2)
+        V_vis = V_vis.view(batch_size, seq_length, self.num_heads, self.head_dim).transpose(1, 2)
+
+        Q_inf = Q_inf.view(batch_size, seq_length, self.num_heads, self.head_dim).transpose(1, 2)
+        K_inf = K_inf.view(batch_size, seq_length, self.num_heads, self.head_dim).transpose(1, 2)
+        V_inf = V_inf.view(batch_size, seq_length, self.num_heads, self.head_dim).transpose(1, 2)
+
+        # 交叉注意力：可见光查询与红外键，红外查询与可见光键
+        # Cross attention: visual query with infrared key, infrared query with visual key
+        # Q_vis 的形状为 (batch_size, num_heads, seq_length, head_dim)
+        # The shape of Q_vis is (batch_size, num_heads, seq_length, head_dim)
+        # K_inf 的形状为 (batch_size, num_heads, head_dim, seq_length)
+        # The shape of K_inf is (batch_size, num_heads, head_dim, seq_length)
+        # 矩阵乘法后，scores_vis_inf 的形状为 (batch_size, num_heads, seq_length, seq_length)
+        # After matrix multiplication, the shape of scores_vis_inf is (batch_size, num_heads, seq_length, seq_length)
+        scores_vis_inf = torch.matmul(Q_vis, K_inf.transpose(-1, -2)) / torch.sqrt(
+            torch.tensor(self.head_dim, dtype=torch.float32))
+        scores_inf_vis = torch.matmul(Q_inf, K_vis.transpose(-1, -2)) / torch.sqrt(
+            torch.tensor(self.head_dim, dtype=torch.float32))
+
+        # 计算注意力权重
+        # Calculate attention weights
+        attention_inf = torch.softmax(scores_vis_inf, dim=-1)
+        attention_vis = torch.softmax(scores_inf_vis, dim=-1)
+
+        # 注意力权重与值的矩阵乘法
+        # Matrix multiplication of attention weights and values
+        # attention_inf 的形状为 (batch_size, num_heads, seq_length, seq_length)
+        # The shape of attention_inf is (batch_size, num_heads, seq_length, seq_length)
+        # V_inf 的形状为 (batch_size, num_heads, seq_length, head_dim)
+        # The shape of V_inf is (batch_size, num_heads, seq_length, head_dim)
+        # out_inf 的形状为 (batch_size, num_heads, seq_length, head_dim)
+        # The shape of out_inf is (batch_size, num_heads, seq_length, head_dim)
+        out_inf = torch.matmul(attention_inf, V_inf)
+        out_vis = torch.matmul(attention_vis, V_vis)
+
+        # 将多头结果拼接并投影回原始维度
+        # Concatenate multi-head results and project back to original dimension
+        out_vis = out_vis.transpose(1, 2).contiguous().view(batch_size, seq_length, model_dim)
+        out_inf = out_inf.transpose(1, 2).contiguous().view(batch_size, seq_length, model_dim)
+
+        # 输出线性变换
+        # Output linear transformation
+        out_vis = self.fc_out_vis(out_vis)
+        out_inf = self.fc_out_inf(out_inf)
+
+        return out_vis, out_inf
+
+
+# 前向全连接网络
+# Feed-Forward Network
+class FeedForward(nn.Module):
+    def __init__(self, model_dim, hidden_dim, dropout=0.1):
+        super(FeedForward, self).__init__()
+        self.fc1 = nn.Linear(model_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, model_dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+
+# 位置编码
+# Positional Encoding
+class PositionalEncoding(nn.Module):
+    def __init__(self, model_dim, dropout, max_len=6400):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        # 创建位置索引
+        # Create position indexes
+        position = torch.arange(0, max_len).unsqueeze(1)
+        # 计算分母项
+        # Calculate denominator terms
+        div_term = torch.exp(torch.arange(0, model_dim, 2) * -(torch.log(torch.tensor(10000.0)) / model_dim))
+
+        pe = torch.zeros(max_len, model_dim)  # 初始化位置编码矩阵 有需要可以采用更多编码，目前只采用了最基础的位置编码
+        # Initialize positional encoding matrix
+        pe[:, 0::2] = torch.sin(position * div_term)  # 偶数列使用sin函数
+        # Even columns use sine function
+        pe[:, 1::2] = torch.cos(position * div_term)  # 奇数列使用cos函数
+        # Odd columns use cosine function
+
+        pe = pe.unsqueeze(0)  # 添加批量维度
+        # Add batch dimension
+        self.register_buffer('pe', pe)  # 注册为模型缓冲区
+        # Register as model buffer
+
+    def forward(self, x):
+        # 将位置编码添加到输入中
+        # Add positional encoding to input
+        x = x + self.pe[:, :x.size(1), :]
+        return self.dropout(x)
+
+
+# 编码器层
+# Encoder Layer
+class TransformerEncoderLayer(nn.Module):
+    def __init__(self, model_dim, num_heads, hidden_dim, dropout=0.1):
+        super(TransformerEncoderLayer, self).__init__()
+        self.cross_attention = MultiHeadCrossAttention(model_dim, num_heads)
+        self.norm1 = nn.LayerNorm(model_dim)
+        self.ff = FeedForward(model_dim, hidden_dim, dropout)
+        self.norm2 = nn.LayerNorm(model_dim)
+
+    def forward(self, vis, inf):
+        # 交叉注意力机制
+        # Cross attention mechanism
+        attn_out_vis, attn_out_inf = self.cross_attention(vis, inf)
+        # 残差连接与归一化
+        # Residual connection and normalization
+        vis = self.norm1(vis + attn_out_vis)
+        inf = self.norm1(inf + attn_out_inf)
+
+        # 前向全连接网络
+        # Feed-forward network
+        ff_out_vis = self.ff(vis)
+        ff_out_inf = self.ff(inf)
+
+        # 残差连接与归一化
+        # Residual connection and normalization
+        vis = self.norm2(vis + ff_out_vis)
+        inf = self.norm2(inf + ff_out_inf)
+
+        return vis, inf
+
+
+# Transformer编码器
+# Transformer Encoder
+class TransformerEncoder(nn.Module):
+    def __init__(self, input_dim, model_dim, num_heads, num_layers, hidden_dim, dropout=0.1):
+        super(TransformerEncoder, self).__init__()
+        self.embedding = nn.Linear(input_dim, model_dim)
+        self.positional_encoding = PositionalEncoding(model_dim, dropout)
+        self.layers = nn.ModuleList([
+            TransformerEncoderLayer(model_dim, num_heads, hidden_dim, dropout) for _ in range(num_layers)
+        ])
+
+    def forward(self, vis, inf):
+        # 嵌入层
+        # Embedding layer
+        vis = self.embedding(vis) * torch.sqrt(torch.tensor(self.embedding.out_features, dtype=torch.float32))
+        inf = self.embedding(inf) * torch.sqrt(torch.tensor(self.embedding.out_features, dtype=torch.float32))
+
+        # 位置编码
+        # Positional encoding
+        vis = self.positional_encoding(vis)
+        inf = self.positional_encoding(inf)
+
+        # 多层编码器
+        # Multiple encoder layers
+        for layer in self.layers:
+            vis, inf = layer(vis, inf)
+
+        return vis, inf
+
+
+# 交叉注意力
+# CrossTransformerFusion
+class CrossTransformerFusion(nn.Module):
+    def __init__(self, input_dim, num_heads=2, num_layers=1, dropout=0.1):
+        super(CrossTransformerFusion, self).__init__()
+        self.hidden_dim = input_dim * 2
+        self.model_dim = input_dim
+        self.encoder = TransformerEncoder(input_dim, self.model_dim, num_heads, num_layers, self.hidden_dim, dropout)
+
+    def forward(self, x):
+        vis, inf = x[0], x[1]
+        # 输入形状为 B, C, H, W
+        # Input shape is B, C, H, W
+        B, C, H, W = vis.shape
+
+        # 将输入变形为 B, H*W, C
+        # Reshape input to B, H*W, C
+        vis = vis.permute(0, 2, 3, 1).reshape(B, -1, C)
+        inf = inf.permute(0, 2, 3, 1).reshape(B, -1, C)
+
+        # 输入Transformer编码器
+        # Input to Transformer encoder
+        vis_out, inf_out = self.encoder(vis, inf)
+
+        # 将输出变形为 B, C, H, W
+        # Reshape output to B, C, H, W
+        vis_out = vis_out.view(B, H, W, -1).permute(0, 3, 1, 2)
+        inf_out = inf_out.view(B, H, W, -1).permute(0, 3, 1, 2)
+
+        # 在通道维度上进行级联
+        # Concatenate on channel dimension
+        out = torch.cat((vis_out, inf_out), dim=1)
+
+        return out
+
+
+##################################  CFT   end ############################################
+
+# https://github.com/DocF/multispectral-object-detection   原始版本
+#-------------------------------  GPT  -----------------------------------------------------
+
+
+class SelfAttention(nn.Module):
+    """
+     Multi-head masked self-attention layer
+    """
+
+    def __init__(self, d_model, d_k, d_v, h, attn_pdrop=.1, resid_pdrop=.1):
+        '''
+        :param d_model: Output dimensionality of the model
+        :param d_k: Dimensionality of queries and keys
+        :param d_v: Dimensionality of values
+        :param h: Number of heads
+        '''
+        super(SelfAttention, self).__init__()
+        assert d_k % h == 0
+        self.d_model = d_model
+        self.d_k = d_model // h
+        self.d_v = d_model // h
+        self.h = h
+
+        # key, query, value projections for all heads
+        self.que_proj = nn.Linear(d_model, h * self.d_k)  # query projection
+        self.key_proj = nn.Linear(d_model, h * self.d_k)  # key projection
+        self.val_proj = nn.Linear(d_model, h * self.d_v)  # value projection
+        self.out_proj = nn.Linear(h * self.d_v, d_model)  # output projection
+
+        # regularization
+        self.attn_drop = nn.Dropout(attn_pdrop)
+        self.resid_drop = nn.Dropout(resid_pdrop)
+
+        self.init_weights()
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    def forward(self, x, attention_mask=None, attention_weights=None):
+        '''
+        Computes Self-Attention
+        Args:
+            x (tensor): input (token) dim:(b_s, nx, c),
+                b_s means batch size
+                nx means length, for CNN, equals H*W, i.e. the length of feature maps
+                c means channel, i.e. the channel of feature maps
+            attention_mask: Mask over attention values (b_s, h, nq, nk). True indicates masking.
+            attention_weights: Multiplicative weights for attention values (b_s, h, nq, nk).
+        Return:
+            output (tensor): dim:(b_s, nx, c)
+        '''
+
+        b_s, nq = x.shape[:2]
+        nk = x.shape[1]
+        q = self.que_proj(x).view(b_s, nq, self.h, self.d_k).permute(0, 2, 1, 3)  # (b_s, h, nq, d_k)
+        k = self.key_proj(x).view(b_s, nk, self.h, self.d_k).permute(0, 2, 3, 1)  # (b_s, h, d_k, nk) K^T
+        v = self.val_proj(x).view(b_s, nk, self.h, self.d_v).permute(0, 2, 1, 3)  # (b_s, h, nk, d_v)
+
+        # Self-Attention
+        #  :math:`(\text(Attention(Q,K,V) = Softmax((Q*K^T)/\sqrt(d_k))`
+        att = torch.matmul(q, k) / np.sqrt(self.d_k)  # (b_s, h, nq, nk)
+
+        # weight and mask
+        if attention_weights is not None:
+            att = att * attention_weights
+        if attention_mask is not None:
+            att = att.masked_fill(attention_mask, -np.inf)
+
+        # get attention matrix
+        att = torch.softmax(att, -1)
+        att = self.attn_drop(att)
+
+        # output
+        out = torch.matmul(att, v).permute(0, 2, 1, 3).contiguous().view(b_s, nq, self.h * self.d_v)  # (b_s, nq, h*d_v)
+        out = self.resid_drop(self.out_proj(out))  # (b_s, nq, d_model)
+
+        return out
+
+
+class myTransformerBlock(nn.Module):
+    """ Transformer block """
+
+    def __init__(self, d_model, d_k, d_v, h, block_exp, attn_pdrop, resid_pdrop):
+        """
+        :param d_model: Output dimensionality of the model
+        :param d_k: Dimensionality of queries and keys
+        :param d_v: Dimensionality of values
+        :param h: Number of heads
+        :param block_exp: Expansion factor for MLP (feed foreword network)
+
+        """
+        super().__init__()
+        self.ln_input = nn.LayerNorm(d_model)
+        self.ln_output = nn.LayerNorm(d_model)
+        self.sa = SelfAttention(d_model, d_k, d_v, h, attn_pdrop, resid_pdrop)
+        self.mlp = nn.Sequential(
+            nn.Linear(d_model, block_exp * d_model),
+            # nn.SiLU(),  # changed from GELU
+            nn.GELU(),  # changed from GELU
+            nn.Linear(block_exp * d_model, d_model),
+            nn.Dropout(resid_pdrop),
+        )
+
+    def forward(self, x):
+        bs, nx, c = x.size()
+
+        x = x + self.sa(self.ln_input(x))
+        x = x + self.mlp(self.ln_output(x))
+
+        return x
+
+
+
+class GPT(nn.Module):
+    """  the full GPT language model, with a context size of block_size """
+
+    def __init__(self, d_model, h=8, block_exp=4,
+                 n_layer=8, vert_anchors=8, horz_anchors=8,
+                 embd_pdrop=0.1, attn_pdrop=0.1, resid_pdrop=0.1):
+        super().__init__()
+
+        self.n_embd = d_model
+        self.vert_anchors = vert_anchors
+        self.horz_anchors = horz_anchors
+
+        d_k = d_model
+        d_v = d_model
+
+        # positional embedding parameter (learnable), rgb_fea + ir_fea
+        self.pos_emb = nn.Parameter(torch.zeros(1, 2 * vert_anchors * horz_anchors, self.n_embd))
+
+        # transformer
+        self.trans_blocks = nn.Sequential(*[myTransformerBlock(d_model, d_k, d_v, h, block_exp, attn_pdrop, resid_pdrop)
+                                            for layer in range(n_layer)])
+
+        # decoder head
+        self.ln_f = nn.LayerNorm(self.n_embd)
+
+        # regularization
+        self.drop = nn.Dropout(embd_pdrop)
+
+        # avgpool
+        self.avgpool = nn.AdaptiveAvgPool2d((self.vert_anchors, self.horz_anchors))
+
+        # init weights
+        self.apply(self._init_weights)
+
+    @staticmethod
+    def _init_weights(module):
+        if isinstance(module, nn.Linear):
+            module.weight.data.normal_(mean=0.0, std=0.02)
+            if module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+
+    def forward(self, x):
+        """
+        Args:
+            x (tuple?)
+
+        """
+        rgb_fea = x[0]  # rgb_fea (tensor): dim:(B, C, H, W)
+        ir_fea = x[1]   # ir_fea (tensor): dim:(B, C, H, W)
+        assert rgb_fea.shape[0] == ir_fea.shape[0]
+        # print(rgb_fea.shape,  ir_fea.shape)
+        bs, c, h, w = rgb_fea.shape
+
+        # -------------------------------------------------------------------------
+        # AvgPooling
+        # -------------------------------------------------------------------------
+        # AvgPooling for reduce the dimension due to expensive computation
+        rgb_fea = self.avgpool(rgb_fea)
+        ir_fea = self.avgpool(ir_fea)
+
+        # -------------------------------------------------------------------------
+        # Transformer
+        # -------------------------------------------------------------------------
+        # pad token embeddings along number of tokens dimension
+        rgb_fea_flat = rgb_fea.view(bs, c, -1)  # flatten the feature
+        ir_fea_flat = ir_fea.view(bs, c, -1)  # flatten the feature
+        token_embeddings = torch.cat([rgb_fea_flat, ir_fea_flat], dim=2)  # concat
+        token_embeddings = token_embeddings.permute(0, 2, 1).contiguous()  # dim:(B, 2*H*W, C)
+
+        # transformer
+        x = self.drop(self.pos_emb + token_embeddings)  # sum positional embedding and token    dim:(B, 2*H*W, C)
+        x = self.trans_blocks(x)  # dim:(B, 2*H*W, C)
+
+        # decoder head
+        x = self.ln_f(x)  # dim:(B, 2*H*W, C)
+        x = x.view(bs, 2, self.vert_anchors, self.horz_anchors, self.n_embd)
+        x = x.permute(0, 1, 4, 2, 3)  # dim:(B, 2, C, H, W)
+
+        # 这样截取的方式, 是否采用映射的方式更加合理？
+        rgb_fea_out = x[:, 0, :, :, :].contiguous().view(bs, self.n_embd, self.vert_anchors, self.horz_anchors)
+        ir_fea_out = x[:, 1, :, :, :].contiguous().view(bs, self.n_embd, self.vert_anchors, self.horz_anchors)
+
+        # -------------------------------------------------------------------------
+        # Interpolate (or Upsample)
+        # -------------------------------------------------------------------------
+        rgb_fea_out = F.interpolate(rgb_fea_out, size=([h, w]), mode='bilinear')
+        ir_fea_out = F.interpolate(ir_fea_out, size=([h, w]), mode='bilinear')
+
+        return (rgb_fea_out, ir_fea_out)
+
+
+
+class Add(nn.Module):
+    #  Add two tensors
+    def __init__(self, arg):
+        super(Add, self).__init__()
+        self.arg = arg
+
+    def forward(self, x):
+        return torch.add(x[0], x[1])
+
+
+class Add2(nn.Module):
+    #  x + transformer[0] or x + transformer[1]
+    def __init__(self, c1, index):
+        super().__init__()
+        self.index = index
+
+    def forward(self, x):
+        if self.index == 0:
+            return torch.add(x[0], x[1][0])
+        elif self.index == 1:
+            return torch.add(x[0], x[1][1])
+        # return torch.add(x[0], x[1])
+
+#------------------------------------------- GPT end---------------------------------------
