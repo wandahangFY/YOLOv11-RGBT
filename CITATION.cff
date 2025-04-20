@@ -1,26 +1,46 @@
 # This CITATION.cff file was generated with https://bit.ly/cffinit
 
 cff-version: 1.2.0
-title: Ultralytics YOLO
+title: YOLOv11-RGBT
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
 type: software
 authors:
-  - given-names: Glenn
-    family-names: Jocher
-    affiliation: Ultralytics
-    orcid: 'https://orcid.org/0000-0001-5950-6979'
-  - family-names: Qiu
-    given-names: Jing
-    affiliation: Ultralytics
-    orcid: 'https://orcid.org/0000-0003-3783-7069'
-  - given-names: Ayush
-    family-names: Chaurasia
-    affiliation: Ultralytics
-    orcid: 'https://orcid.org/0000-0002-7603-6750'
-repository-code: 'https://github.com/ultralytics/ultralytics'
-url: 'https://ultralytics.com'
+  - given-names: Dahang
+    family-names: Wan
+    affiliation: School of Instrument Science and Opto-electronics Engineering, Hefei University of Technology, Hefei 230009, China; Anhui Province Key Laboratory of Measuring Theory and Precision Instrument, Hefei University of Technology, Hefei 230009, China
+    orcid: 'https://orcid.org/0000-0002-7442-5752   '
+  - given-names: Rongsheng
+    family-names: Lu
+    affiliation: School of Instrument Science and Opto-electronics Engineering, Hefei University of Technology, Hefei 230009, China; Anhui Province Key Laboratory of Measuring Theory and Precision Instrument, Hefei University of Technology, Hefei 230009, China
+    orcid: 'https://orcid.org/0000-0002-9794-9428   '
+  - family-names: Fang
+    given-names: Yang
+    affiliation: School of Instrument Science and Opto-electronics Engineering, Hefei University of Technology, Hefei 230009, China; Anhui Province Key Laboratory of Measuring Theory and Precision Instrument, Hefei University of Technology, Hefei 230009, China
+  - given-names: Xianli
+    family-names: Lang
+    affiliation: School of Instrument Science and Opto-electronics Engineering, Hefei University of Technology, Hefei 230009, China; Anhui Province Key Laboratory of Measuring Theory and Precision Instrument, Hefei University of Technology, Hefei 230009, China
+    orcid: 'https://orcid.org/0000-0002-8516-0411   '
+  - family-names: Shu
+    given-names: Shuangbao
+    affiliation: School of Instrument Science and Opto-electronics Engineering, Hefei University of Technology, Hefei 230009, China; Anhui Province Key Laboratory of Measuring Theory and Precision Instrument, Hefei University of Technology, Hefei 230009, China
+  - family-names: Chen
+    given-names: Jingjing
+    affiliation: School of Instrument Science and Opto-electronics Engineering, Hefei University of Technology, Hefei 230009, China; Anhui Province Key Laboratory of Measuring Theory and Precision Instrument, Hefei University of Technology, Hefei 230009, China
+  - family-names: Xu
+    given-names: Ting
+    affiliation: School of Instrument Science and Opto-electronics Engineering, Hefei University of Technology, Hefei 230009, China; Anhui Province Key Laboratory of Measuring Theory and Precision Instrument, Hefei University of Technology, Hefei 230009, China
+    orcid: 'https://orcid.org/0009-0006-6765-4203   '
+  - given-names: Siyuan
+    family-names: Shen
+    affiliation: School of Instrument Science and Opto-electronics Engineering, Hefei University of Technology, Hefei 230009, China; Anhui Province Key Laboratory of Measuring Theory and Precision Instrument, Hefei University of Technology, Hefei 230009, China
+    orcid: 'https://orcid.org/0009-0005-4124-8672   '
+  - family-names: Ye
+    given-names: Zecong
+    affiliation: School of Information Engineering, Engineering University of PAP, Xi’an 710086, China
+repository-code: 'https://github.com/wandahangFY/YOLOv11-RGBT'
+url: 'https://github.com/wandahangFY/YOLOv11-RGBT'
 license: AGPL-3.0
-version: 8.0.0
-date-released: '2023-01-10'
+version: 1.12.0
+date-released: '2025-02-20'
