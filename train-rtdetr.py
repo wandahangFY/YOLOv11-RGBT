@@ -8,7 +8,7 @@ if __name__ == '__main__':
     model.train(data=R'ultralytics/cfg/datasets/LLVIP_r20.yaml',
                 cache=False,
                 imgsz=640,
-                epochs=10,
+                epochs=300,
                 batch=2,
                 close_mosaic=0,
                 workers=2,
