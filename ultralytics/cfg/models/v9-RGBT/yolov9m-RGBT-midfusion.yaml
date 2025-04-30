@@ -45,7 +45,7 @@ head:
   - [-1, 1, RepNCSPELAN4, [360, 360, 180, 1]] # 27
 
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 23], 1, Concat, [1]] # cat backbone P3
+  - [[-1, 21], 1, Concat, [1]] # cat backbone P3
   - [-1, 1, RepNCSPELAN4, [240, 240, 120, 1]] # 30
 
   - [-1, 1, AConv, [180]]
