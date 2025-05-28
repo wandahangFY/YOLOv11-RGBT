@@ -259,6 +259,20 @@ class DetectionValidator(BaseValidator):
             names=self.names,
             on_plot=self.on_plot,
         )
+        # 'yzc' 2025-05-28
+        if self.args.use_simotm in ("RGBT", "RGBRGB6C"):
+            plot_images(
+                batch["img"],
+                batch["batch_idx"],
+                batch["cls"].squeeze(-1),
+                batch["bboxes"],
+                paths=batch["im_file"],
+                fname=self.save_dir / f"val_batch{ni}_labels_ir.jpg",
+                names=self.names,
+                on_plot=self.on_plot,
+                use_simotm=self.args.use_simotm,
+                ir_show=True,
+            )
 
     def plot_predictions(self, batch, preds, ni):
         """Plots predicted bounding boxes on input images and saves the result."""
