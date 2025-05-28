@@ -151,3 +151,15 @@ class ClassificationTrainer(BaseTrainer):
             fname=self.save_dir / f"train_batch{ni}.jpg",
             on_plot=self.on_plot,
         )
+        # 'yzc' 2025-03-03
+        if self.args.use_simotm in ("RGBT", "RGBRGB6C"):
+            plot_images(
+                images=batch["img"],
+                batch_idx=torch.arange(len(batch["img"])),
+                cls=batch["cls"].view(-1),  # warning: use .view(), not .squeeze() for Classify models
+                # fname=self.save_dir / f"train_batch{ni}.jpg",
+                on_plot=self.on_plot,
+                fname=self.save_dir / f"train_batch{ni}_ir.jpg",
+                use_simotm=self.args.use_simotm,  # 2025-01-05
+                ir_show=True  # 显示红外图像以及标签
+            )
