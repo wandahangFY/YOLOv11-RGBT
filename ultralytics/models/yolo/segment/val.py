@@ -220,6 +220,21 @@ class SegmentationValidator(DetectionValidator):
             names=self.names,
             on_plot=self.on_plot,
         )
+        # 'yzc' 2025-03-03
+        if self.args.use_simotm in ("RGBT", "RGBRGB6C"):
+            plot_images(
+                batch["img"],
+                batch["batch_idx"],
+                batch["cls"].squeeze(-1),
+                batch["bboxes"],
+                masks=batch["masks"],
+                paths=batch["im_file"],
+                fname=self.save_dir / f"val_batch{ni}_ir.jpg",
+                names=self.names,
+                on_plot=self.on_plot,
+                use_simotm=self.args.use_simotm,  # 2025-01-05
+                ir_show=True  # 显示红外图像以及标签
+            )
 
     def plot_predictions(self, batch, preds, ni):
         """Plots batch predictions with masks and bounding boxes."""

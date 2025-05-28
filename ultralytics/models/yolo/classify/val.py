@@ -105,6 +105,19 @@ class ClassificationValidator(BaseValidator):
             on_plot=self.on_plot,
         )
 
+        # 'yzc' 2025-05-28
+        if self.args.use_simotm in ("RGBT", "RGBRGB6C"):
+            plot_images(
+                images=batch["img"],
+                batch_idx=torch.arange(len(batch["img"])),
+                cls=batch["cls"].view(-1),  # warning: use .view(), not .squeeze() for Classify models
+                names=self.names,
+                on_plot=self.on_plot,
+                fname=self.save_dir / f"val_batch{ni}_labels_ir.jpg",
+                use_simotm=self.args.use_simotm,
+                ir_show=True,
+            )
+
     def plot_predictions(self, batch, preds, ni):
         """Plots predicted bounding boxes on input images and saves the result."""
         plot_images(
