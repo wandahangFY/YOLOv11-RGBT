@@ -1625,7 +1625,8 @@ class LetterBox:
         elif channels == 4:
             value = (114, 114, 114,114)  # RGB 彩色图像
         else:
-            raise ValueError("Unsupported number of channels,ch=",channels)
+            pass
+            # raise ValueError("Unsupported number of channels,ch=",channels)
         # 2025-01-05-end
         if channels == 6:
             img1= img[:, :, :3]
@@ -1643,10 +1644,16 @@ class LetterBox:
             b2, g2, r2 = cv2.split(img2)
             # 合并成6通道图像
             img = cv2.merge((b, g, r, b2, g2, r2))
-        else :
+        elif channels in [1,3,4]:
             img = cv2.copyMakeBorder(
                 img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=value
             )  # add border
+        else:  # multispectral
+            h, w, c = img.shape
+            pad_img = np.full((h + top + bottom, w + left + right, c), fill_value=114, dtype=img.dtype)
+            pad_img[top: top + h, left: left + w] = img
+            img = pad_img
+
         if labels.get("ratio_pad"):
             labels["ratio_pad"] = (labels["ratio_pad"], (left, top))  # for evaluation
 
@@ -3124,6 +3131,8 @@ class RandomHSV:
     def __call__(self, labels):
         """Applies random horizontal or vertical flip to an image with a given probability."""
         img = labels['img']
+        if img.shape[-1] != 3:  # only apply to RGB images
+            return labels
         if self.hgain or self.sgain or self.vgain:
             r = np.random.uniform(-1, 1, 3) * [self.hgain, self.sgain, self.vgain] + 1  # random gains
             hue, sat, val = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2HSV))

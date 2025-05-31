@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 
 from ultralytics.data.utils import FORMATS_HELP_MSG, HELP_URL, IMG_FORMATS
 from ultralytics.utils import DEFAULT_CFG, LOCAL_RANK, LOGGER, NUM_THREADS, TQDM
-
+from ultralytics.utils.patches import imread
 
 def receptiveField(img, R=3, r=1, fac_r=-1, fac_R=6):
     # img1 = np.float32(img)
@@ -244,7 +244,7 @@ class BaseDataset(Dataset):
                 except Exception as e:
                     LOGGER.warning(f"{self.prefix}WARNING ⚠️ Removing corrupt *.npy image file {fn} due to: {e}")
                     Path(fn).unlink(missing_ok=True)
-                    im = cv2.imread(f)  # BGR
+                    im = cv2.imread(f,cv2.IMREAD_COLOR)  # BGR
             else:  # read image
                 # im = cv2.imread(f)  # BGR
                 if self.use_simotm ==  'Gray2BGR':
@@ -260,6 +260,8 @@ class BaseDataset(Dataset):
                 elif self.use_simotm == 'Gray16bit':
                     im = cv2.imread(f, cv2.IMREAD_UNCHANGED)  # GRAY
                     im = im.astype(np.float32)
+                elif self.use_simotm == 'Multispectral':
+                    im = imread(f, cv2.IMREAD_COLOR)  # Multispectral
                 elif self.use_simotm == 'SimOTMSSS':
                     im = cv2.imread(f, cv2.IMREAD_UNCHANGED)  # TIF 16bit
                     im=im.astype(np.float32)
@@ -319,10 +321,9 @@ class BaseDataset(Dataset):
                     # 合并成6通道图像
                     im = cv2.merge((b, g, r, b2, g2, r2))
                 else:
-                    im = cv2.imread(f)  # BGR
+                    im = cv2.imread(f,cv2.IMREAD_COLOR)  # BGR
             if im is None:
                 raise FileNotFoundError(f"Image Not Found {f}")
-
             h0, w0 = im.shape[:2]  # orig hw
             if rect_mode:  # resize long side to imgsz while maintaining aspect ratio
                 r = self.imgsz / max(h0, w0)  # ratio
