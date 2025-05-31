@@ -165,6 +165,8 @@ class BasePredictor:
                 img3c = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, :3, :, :][:, ::-1, :, :])
                 img3c2 = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, 3:, :, :][:, ::-1, :, :])
                 im = np.concatenate((img3c, img3c2), axis=1)
+            else: # Multispectral
+                im = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, ::-1, :, :])  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
             im = torch.from_numpy(im)
 
         # NOTE: assuming im with (b, 3, h, w) if it's a tensor
@@ -528,5 +530,6 @@ class BasePredictor:
             cv2.imwrite(save_path.replace(file_extension, '_part2' + file_extension), gray)
 
         else:
-            # 处理其他情况或报错
-            raise ValueError("Unsupported number of channels")
+            cv2.imwrite(str(Path(save_path).with_suffix(".jpg")), im[:, :, :3])
+            # 有需要的话，可以通过下列方式保存其他通道   If desired, additional channels can be saved as follows
+            # cv2.imwrite(save_path.replace(file_extension, '_part2' + ".jpg")), im[:, :, 4:5])  # 保存第四通道 其余通道类似  Save channel 4 The rest of the channels are similar

@@ -2258,8 +2258,10 @@ def plot_images(
                 im = im if im.shape[2]==3 else np.repeat(im, repeats=3, axis=2)
             else:
                 im = im.transpose(1, 2, 0)[:, :, :3]
-        else:
+        elif im.shape[0] == 3:
             im = im.transpose(1, 2, 0)
+        else:
+            im = im.transpose(1, 2, 0)[:, :, :3]  # crop multispectral images to first 3 channels
         mosaic[y:y + h, x:x + w, :] = im
         mosaic[y:y + h, x:x + w, :] = im
 

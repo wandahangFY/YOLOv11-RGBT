@@ -500,7 +500,8 @@ class LoadImagesAndVideos:
                         im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
                         im0 = im0.astype(np.float32)
                         im0 = SimOTMSSS(im0)
-
+                    elif self.use_simotm == 'Multispectral':
+                        im0 = imread(path, cv2.IMREAD_COLOR)  # Multispectral
                     else:
                         pass
 
@@ -544,6 +545,9 @@ class LoadImagesAndVideos:
                     im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
                     im0 = im0.astype(np.float32)
                     im0 = SimOTMSSS(im0)
+                elif self.use_simotm == 'Multispectral':
+                    im0 = imread(path, cv2.IMREAD_COLOR)  # Multispectral
+                    print(im0.shape)
                 elif self.use_simotm == 'RGBT':
                     im_visible = cv2.imread(path)  # BGR
                     im_infrared = cv2.imread(path.replace('visible', 'infrared'), cv2.IMREAD_GRAYSCALE)  # BGR
