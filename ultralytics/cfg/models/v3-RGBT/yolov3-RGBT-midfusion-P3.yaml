@@ -53,7 +53,7 @@ head:
 
   - [-2, 1, Conv, [256, 1, 1]]
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 20], 1, Concat, [1]] # cat backbone P4
+  - [[-1, 19], 1, Concat, [1]] # cat backbone P4
   - [-1, 1, Bottleneck, [512, False]]
   - [-1, 1, Bottleneck, [512, False]]
   - [-1, 1, Conv, [256, 1, 1]]
@@ -61,7 +61,7 @@ head:
 
   - [-2, 1, Conv, [128, 1, 1]]
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 19], 1, Concat, [1]] # cat backbone P3
+  - [[-1, 17], 1, Concat, [1]] # cat backbone P3
   - [-1, 1, Bottleneck, [256, False]]
   - [-1, 2, Bottleneck, [256, False]] # 38 (P3/8-small)
 
