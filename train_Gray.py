@@ -17,7 +17,7 @@ if __name__ == '__main__':
                 # resume='', # last.pt path
                 # amp=False, # close amp
                 # fraction=0.2,
-                use_simotm="Gray16bit",
+                use_simotm="Gray", # Gray16bit
                 channels=1,
                 project='PVELAD',
                 name='PVELAD-yolov8n-DBBNCSPELAN',

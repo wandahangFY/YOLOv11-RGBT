@@ -1,7 +1,7 @@
-# YOLOv11-RGBT: Improved YOLOv11 with Multi-Information Fusion for Object Detection in Gray-Scale Images
+# YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework
+# YOLOv11-RGBT: 综合的单阶段多光谱目标检测框架
 
-
-# GitHub 项目快速启动教程：多模态数据集配置（可见光与红外光）
+# YOLOv11-RGBT 项目快速启动教程：多模态数据集配置（可见光与红外光）
 
 ## 项目简介
 本项目旨在展示如何配置可见光（visible）和红外光（infrared）数据集，以适配基于 YOLOv11 的多模态目标检测任务。通过3种不同的配置方法（目录配置和 TXT 文件配置），您可以轻松地将可见光数据集与红外光数据集关联起来。
@@ -17,6 +17,7 @@
 
 ## News:
 - 2025-04-18  添加了 CTF [CTF](https://github.com/DocF/multispectral-object-detection)
+- 2025-05-31  新增 任意通道数目的多光谱目标检测数据集
 
 
 ## 支持图像格式（use_simotm）：
