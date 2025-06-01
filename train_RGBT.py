@@ -11,7 +11,7 @@ if __name__ == '__main__':
                 imgsz=640,
                 epochs=300,
                 batch=16,
-                close_mosaic=0,
+                close_mosaic=10,
                 workers=2,
                 device='0',
                 optimizer='SGD',  # using SGD
