@@ -176,3 +176,4 @@ calibration_*.npy
 /PVELAD/
 /train_RGBT_mine.py
 /train_RGBT_kaist_C.py
+#/transform_COCO_to_RGBT.py

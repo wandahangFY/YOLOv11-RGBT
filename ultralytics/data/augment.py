@@ -1069,6 +1069,7 @@ class RandomPerspective:
 
         # Combined rotation matrix
         M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
+        value = (114, 114, 114)  # RGB  RGBRGB6C Gray
         # 2025-03-03 'yzc'
         if len(img.shape) > 2:
             channels = img.shape[2]
