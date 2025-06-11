@@ -287,7 +287,7 @@ PRs or Issues are welcome to jointly improve the project. This project is a long
 - GitHub: [https://github.com/wandahangFY](https://github.com/wandahangFY)
 - Email: wandahang@foxmail.com
 - QQ: 1753205688
-- QQ Group: 483264141
+- QQ Group: 483264141 (Free)
 
 ![QQ Group](PaperImages/QQ.png)
 

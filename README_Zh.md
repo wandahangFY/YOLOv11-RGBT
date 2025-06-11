@@ -311,7 +311,7 @@ python val.py
 - GitHub：[https://github.com/wandahangFY](https://github.com/wandahangFY)
 - Email：wandahang@foxmail.com
 - QQ: 1753205688
-- QQ群:483264141
+- QQ群:483264141 (永久免费)
 
 ![QQ.png:](PaperImages/QQ.png)
 
