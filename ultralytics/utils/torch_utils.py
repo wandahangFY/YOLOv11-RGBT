@@ -445,6 +445,8 @@ def initialize_weights(model):
             m.momentum = 0.03
         elif t in {nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU}:
             m.inplace = True
+        elif hasattr(m, 'reset_parameters'):  # Check if the module has reset_parameters method
+            m.reset_parameters()
 
 
 def scale_img(img, ratio=1.0, same_shape=False, gs=32):

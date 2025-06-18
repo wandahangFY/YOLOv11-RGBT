@@ -23,6 +23,7 @@ __all__ = (
     "RepConv",
     "Index",
     'Silence', 'SilenceChannel', 'ChannelToNumber', 'NumberToChannel',
+    'ZeroConv1d','ZeroConv2d',
 )
 
 
@@ -398,3 +399,68 @@ class NumberToChannel(nn.Module):
         return x
 
 #------------------------------------------- 灵感来自于v9 ------------------------------
+
+
+
+# ----------------------------------------- zeroconv  灵感来自于ControlNet--------------------------
+
+class ZeroConv1d(nn.Conv1d):
+    """
+    一维卷积，权重初始化为0
+    One-dimensional convolution, with weights initialized to 0
+    """
+
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1,
+                 padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros'):
+        super(ZeroConv1d, self).__init__(
+            in_channels, out_channels, kernel_size, stride,
+            padding, dilation, groups, bias, padding_mode)
+
+
+    def reset_parameters(self):
+        """
+        重置参数，确保权重始终为0，训练时不调用，
+        Reset the parameters to ensure that the weights are always 0, and do not call during training.
+        """
+        nn.init.zeros_(self.weight)
+        if self.bias is not None:
+            nn.init.zeros_(self.bias)
+        # print(f"Weighted sum of weights for layer: {self.weight.sum().item()}")
+
+    def forward(self, input):
+        # 前向传播逻辑
+        output = super(ZeroConv1d, self).forward(input)
+        # 打印权重加权信息
+        # print(f"Weighted sum of weights for layer: {self.weight.sum().item()}")
+        return output
+
+class ZeroConv2d(nn.Conv2d):
+    """
+    二维卷积，权重初始化为0
+    Two-dimensional convolution, with weights initialized to 0
+    """
+
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1,
+                 padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros'):
+        super(ZeroConv2d, self).__init__(
+            in_channels, out_channels, kernel_size, stride,
+            padding, dilation, groups, bias, padding_mode)
+
+
+    def reset_parameters(self):
+        """
+        重置参数，确保权重始终为0, 训练时不调用
+        Reset the parameters to ensure that the weights are always 0, and do not call during training.
+        """
+        nn.init.zeros_(self.weight)
+        if self.bias is not None:
+            nn.init.zeros_(self.bias)
+        # print("reset_parameters 2D Conv Weights (sum):", self.weight.sum().item())
+
+    def forward(self, input):
+        # 前向传播逻辑
+        output = super(ZeroConv2d, self).forward(input)
+        # 打印权重加权信息
+        # print(f"Weighted sum of weights for layer: {self.weight.sum().item()}")
+        return output
+#-------------------------------------------------------------------------
