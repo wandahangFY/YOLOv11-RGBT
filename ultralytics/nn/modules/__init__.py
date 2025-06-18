@@ -78,7 +78,7 @@ from .conv import (
     Index,
     LightConv,
     RepConv,
-    SpatialAttention,Silence,SilenceChannel,ChannelToNumber,NumberToChannel,
+    SpatialAttention,Silence,SilenceChannel,ChannelToNumber,NumberToChannel,ZeroConv2d,ZeroConv1d,
 
 )
 
@@ -169,7 +169,7 @@ __all__ = (
     "Attention",
     "PSA",
     "TorchVision",
-    "Index", 'Silence','SilenceChannel','ChannelToNumber','NumberToChannel',
+    "Index", 'Silence','SilenceChannel','ChannelToNumber','NumberToChannel', 'ZeroConv1d','ZeroConv2d',
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention','SilenceLayer',
     "CrossAttentionShared","CrossMLCA","TensorSelector","CrossMLCAv2",'YOLOv4_BottleneckCSP','YOLOv4_Bottleneck',
     'DiverseBranchBlock', 'WideDiverseBranchBlock', 'DeepDiverseBranchBlock','FeaturePyramidAggregationAttention',

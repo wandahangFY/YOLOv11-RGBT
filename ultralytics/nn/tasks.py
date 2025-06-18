@@ -59,7 +59,7 @@ from ultralytics.nn.modules import (
     HGStem,
     ImagePoolingAttn,
     Index, Silence, SilenceChannel, ChannelToNumber, NumberToChannel, DiverseBranchBlock, WideDiverseBranchBlock,
-    DeepDiverseBranchBlock, FeaturePyramidAggregationAttention, SilenceLayer,
+    DeepDiverseBranchBlock, FeaturePyramidAggregationAttention, SilenceLayer,ZeroConv2d,ZeroConv1d,
     ConvNormLayer, BasicBlock, BottleNeck, Blocks,
     Pose,
     RepC3,
@@ -1139,6 +1139,14 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             if c2 != nc:  # if not output
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
 
+            args = [c1, c2, *args[1:]]
+        elif m in frozenset({ZeroConv2d, ZeroConv1d}):
+            c1, c2 = ch[f], args[0]
+            if c2 != nc:  # if not output
+                if c2>=8:
+                    c2 = make_divisible(min(c2, max_channels) * width, 8)
+                else:
+                    c2=c2
             args = [c1, c2, *args[1:]]
         elif m in frozenset({CrossMLCA,CrossMLCAv2}):
             c2 = args[0]
