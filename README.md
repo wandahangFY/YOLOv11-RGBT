@@ -17,6 +17,8 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 ## News:
 - 2025-04-18  Add CTF [CTF](https://github.com/DocF/multispectral-object-detection)
 - 2025-05-31 New multi-spectral object detection dataset with arbitrary number of channels
+- 2025-06-18  Added the access link for the paper [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
+- 2025-06-18 Correction: This framework is applicable to all pixel-aligned images, not limited to multispectral images only, but also including depth maps and SAR images, etc.
 
 ## Supported image formats（use_simotm）:
 1. uint8: 'Gray'  Single-channel 8-bit gray-scale image.  channels=1 ,  yaml   ch: 1 
@@ -307,8 +309,18 @@ PRs or Issues are welcome to jointly improve the project. This project is a long
 [https://www.sciencedirect.com/science/article/pii/S1474034624003574]( https://www.sciencedirect.com/science/article/pii/S1474034624003574)
 
 ## Citation Format
-Wan, D.; Lu, R.; Hu, B.; Yin, J.; Shen, S.; xu, T.; Lang, X. YOLO-MIF: Improved YOLOv8 with Multi-Information Fusion for Object Detection in Gray-Scale Images. Advanced Engineering Informatics 2024, 62, 102709, doi:10.1016/j.aei.2024.102709.
+D. Wan, R. Lu, Y. Fang, X. Lang, S. Shu, J. Chen, S. Shen, T. Xu, Z. Ye, YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework, (2025). https://doi.org/10.48550/arXiv.2506.14696.
 
+
+@misc{wan2025yolov11rgbtcomprehensivesinglestagemultispectral,
+      title={YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework}, 
+      author={Dahang Wan and Rongsheng Lu and Yang Fang and Xianli Lang and Shuangbao Shu and Jingjing Chen and Siyuan Shen and Ting Xu and Zecong Ye},
+      year={2025},
+      eprint={2506.14696},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2506.14696}, 
+}
 
 ## Reference Links
 - [Codebase used for overall framework: YOLOv8](https://github.com/ultralytics/ultralytics)

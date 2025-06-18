@@ -1,11 +1,11 @@
-# This CITATION.cff file was generated with https://bit.ly/cffinit
+# This CITATION.cff file is only for temporary use during the publication of the paper. If you need to use it, please directly refer to the paper. If you have any questions or if there are any errors in this document, please contact me directly for modification or deletion.
 
 cff-version: 1.2.0
 title: YOLOv11-RGBT
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
-type: software
+type: Software
 authors:
   - given-names: Dahang
     family-names: Wan
