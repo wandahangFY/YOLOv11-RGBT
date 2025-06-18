@@ -15,10 +15,11 @@
 
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
-## News:
+## 更新日志:
 - 2025-04-18  添加了 CTF [CTF](https://github.com/DocF/multispectral-object-detection)
 - 2025-05-31  新增 任意通道数目的多光谱目标检测数据集
-
+- 2025-06-18  新增了论文访问链接 [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
+- 2025-06-18  更正：本框架适合所有像素对齐的图像，不仅限于多光谱,包括深度图和SAR图像等
 
 ## 支持图像格式（use_simotm）：
 1. uint8: 'Gray' 单通道8位灰度图像。   channels=1 ,  yaml   ch: 1 
@@ -28,10 +29,8 @@
 5. unit8: 'RGBT' 四通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=4 ,  yaml   ch: 4 
 6. unit8: 'RGBRGB6C' 六通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=6 ,  yaml   ch: 6 
 
-## 更新日志
-- **2025-03-07**：添加数据集配置教程。
 
----
+
 
 ## 数据集配置
 
@@ -340,7 +339,18 @@ python val.py
 [https://www.sciencedirect.com/science/article/pii/S1474034624003574]( https://www.sciencedirect.com/science/article/pii/S1474034624003574)
 
 ## 引用格式
-Wan, D.; Lu, R.; Hu, B.; Yin, J.; Shen, S.; xu, T.; Lang, X. YOLO-MIF: Improved YOLOv8 with Multi-Information Fusion for Object Detection in Gray-Scale Images. Advanced Engineering Informatics 2024, 62, 102709, doi:10.1016/j.aei.2024.102709.
+D. Wan, R. Lu, Y. Fang, X. Lang, S. Shu, J. Chen, S. Shen, T. Xu, Z. Ye, YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework, (2025). https://doi.org/10.48550/arXiv.2506.14696.
+
+
+@misc{wan2025yolov11rgbtcomprehensivesinglestagemultispectral,
+      title={YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework}, 
+      author={Dahang Wan and Rongsheng Lu and Yang Fang and Xianli Lang and Shuangbao Shu and Jingjing Chen and Siyuan Shen and Ting Xu and Zecong Ye},
+      year={2025},
+      eprint={2506.14696},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2506.14696}, 
+}
 
 
 ## 参考链接
