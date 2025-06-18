@@ -19,6 +19,8 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 - 2025-05-31 New multi-spectral object detection dataset with arbitrary number of channels
 - 2025-06-18  Added the access link for the paper [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
 - 2025-06-18 Correction: This framework is applicable to all pixel-aligned images, not limited to multispectral images only, but also including depth maps and SAR images, etc.
+- 2025-06-19 Added the MCF training code and a simple tutorial corresponding to the paper
+
 
 ## Supported image formats（use_simotm）:
 1. uint8: 'Gray'  Single-channel 8-bit gray-scale image.  channels=1 ,  yaml   ch: 1 
