@@ -25,7 +25,7 @@ from ultralytics.nn.modules import (
     RecursionDiverseBranchBlock,MANet, HyperComputeModule, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star,
     C3k2_DeepDBB, C3k2_DBB, C3k2_WDBB, C2f_DeepDBB, C2f_WDBB, C2f_DBB, C3k_RDBB, C2f_RDBB, C3k2_RDBB, A2C2f,
     CrossC2f, CrossC3k2,
-    GPT,Add2,CrossTransformerFusion,
+    GPT,Add2,CrossTransformerFusion,NiNfusion,TransformerFusionBlock,
 
     SPP,
     SPPELAN,
@@ -1120,6 +1120,14 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             # if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
             #     c2 = make_divisible(min(c2, max_channels) * width, 8)
             args = [c2, args[1]]
+
+        elif m is NiNfusion:
+            c1 = sum([ch[x] for x in f])
+            c2 = c1 // 2
+            args = [c1, c2, *args]
+        elif m is TransformerFusionBlock:
+            c2 = ch[f[0]]
+            args = [c2, *args[1:]]
 
         elif m in frozenset({CrossC2f,CrossC3k2}):
             c2 = args[0]

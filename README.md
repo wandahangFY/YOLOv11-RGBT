@@ -20,7 +20,7 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 - 2025-06-18  Added the access link for the paper [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
 - 2025-06-18 Correction: This framework is applicable to all pixel-aligned images, not limited to multispectral images only, but also including depth maps and SAR images, etc.
 - 2025-06-19 Added the MCF training code and a simple tutorial corresponding to the paper
-
+- 2025-06-22 Added the NiNfusion and TransformerFusionBlock modules of ICAFusion (https://github.com/chanchanchan97/ICAFusion)
 
 ## Supported image formats（use_simotm）:
 1. uint8: 'Gray'  Single-channel 8-bit gray-scale image.  channels=1 ,  yaml   ch: 1 
@@ -29,6 +29,7 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 4. uint8: 'BGR'  Three-channel 8-bit color image.  channels=3 ,  yaml   ch: 3 
 5. unit8: 'RGBT' Four-channel 8-bit color image.(Including early fusion, middle fusion, late fusion, score fusion, weight sharing mode)  channels=4 ,  yaml   ch: 4 
 6. unit8: 'RGBRGB6C' Six-channel 8-bit color image.(Including early fusion, middle fusion, late fusion, score fusion, weight sharing mode) channels=6 ,  yaml   ch: 6 
+7. unit8: 'Multispectral'  8-bit multi-spectral images for any channel (including pre-fusion, mid-fusion, post-fusion, fractional fusion, and weight-sharing mode) channels=n
 
 Among them, the directory format of 1-4 is consistent with YOLOv8. With train.txt and val.txt, all you need to do is write the image address below visible, and the data format directory of 'RGBT' is as follows:
 

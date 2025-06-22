@@ -21,7 +21,7 @@
 - 2025-06-18  新增了论文访问链接 [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
 - 2025-06-18  更正：本框架适合所有像素对齐的图像，不仅限于多光谱,包括深度图和SAR图像等
 - 2025-06-19 添加了论文所对应的MCF训练代码及简单教程
-
+- 2025-06-22 加入了ICAFusion的NiNfusion和TransformerFusionBlock模块 (https://github.com/chanchanchan97/ICAFusion)
 
 
 
@@ -32,7 +32,7 @@
 4. uint8: 'BGR' 三通道8位彩色图像。 channels=3 ,  yaml   ch: 3 
 5. unit8: 'RGBT' 四通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=4 ,  yaml   ch: 4 
 6. unit8: 'RGBRGB6C' 六通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=6 ,  yaml   ch: 6 
-
+7. unit8: 'Multispectral'  任意通道8位多光谱图像 (包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=n
 
 
 
