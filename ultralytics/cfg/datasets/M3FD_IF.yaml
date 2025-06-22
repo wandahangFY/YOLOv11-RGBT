@@ -86,4 +86,6 @@ val:  G:/wan/data/RGBT/M3FD_Detection/M3FD_IF_trainval.txt # 4952 images
 nc: 6
 
 # class names
-names: ['People', 'Car', 'Lamp', 'Bus', 'Motorcycle', 'Truck']
+#names: ['People', 'Car', 'Lamp', 'Bus', 'Motorcycle', 'Truck']
+
+names: ['People', 'Car', 'Bus', 'Lamp', 'Motorcycle', 'Truck']
