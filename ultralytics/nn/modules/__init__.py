@@ -79,6 +79,7 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,Silence,SilenceChannel,ChannelToNumber,NumberToChannel,ZeroConv2d,ZeroConv1d,
+    TransformerFusionBlock, NiNfusion,
 
 )
 
@@ -179,5 +180,5 @@ __all__ = (
     "CBH","ES_Bottleneck","DWConvblock","ADD",
     'MANet', 'HyperComputeModule', 'MANet_FasterBlock', 'MANet_FasterCGLU', 'MANet_Star',
 
-    "GPT","Add2","Add","CrossTransformerFusion",
+    "GPT","Add2","Add","CrossTransformerFusion", 'TransformerFusionBlock','NiNfusion',
 )
