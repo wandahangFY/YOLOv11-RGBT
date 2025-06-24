@@ -22,7 +22,7 @@
 - 2025-06-18  更正：本框架适合所有像素对齐的图像，不仅限于多光谱,包括深度图和SAR图像等
 - 2025-06-19 添加了论文所对应的MCF训练代码及简单教程
 - 2025-06-22 加入了ICAFusion的NiNfusion和TransformerFusionBlock模块 (https://github.com/chanchanchan97/ICAFusion)
-
+- 2025-06-24  新增YOLOv13及YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)
 
 
 ## 支持图像格式（use_simotm）：
