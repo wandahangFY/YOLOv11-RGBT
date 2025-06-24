@@ -17,10 +17,12 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 ## News:
 - 2025-04-18  Add CTF [CTF](https://github.com/DocF/multispectral-object-detection)
 - 2025-05-31 New multi-spectral object detection dataset with arbitrary number of channels
-- 2025-06-18  Added the access link for the paper [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
+- 2025-06-18  Added the access link for the paper [YOLOv11-RGBT https://arxiv.org/abs/2506.14696](https://arxiv.org/abs/2506.14696)
 - 2025-06-18 Correction: This framework is applicable to all pixel-aligned images, not limited to multispectral images only, but also including depth maps and SAR images, etc.
 - 2025-06-19 Added the MCF training code and a simple tutorial corresponding to the paper
 - 2025-06-22 Added the NiNfusion and TransformerFusionBlock modules of ICAFusion (https://github.com/chanchanchan97/ICAFusion)
+- 2025-06-24 New additions: YOLOv13 and YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)
+
 
 ## Supported image formats（use_simotm）:
 1. uint8: 'Gray'  Single-channel 8-bit gray-scale image.  channels=1 ,  yaml   ch: 1 
@@ -225,8 +227,35 @@ Configure your dataset directory or TXT file according to one of the three metho
 ### 3. Install Dependencies
 (It is recommended to directly use the YOLOv11 or YOLOv8 environment that has already been set up on this computer, without the need to download again.)
 ```bash
+# Step 1.Create a virtual environment with conda
+conda create -n pt121_py38 python=3.8
+
+# Step 2: Install pytorch
+conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
+
+
+# Step 3: Install the remaining dependencies
 pip install -r requirements.txt
+
+
+# https://pytorch.org/get-started/previous-versions/
+## CUDA 10.2
+#conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=10.2 -c pytorch
+## CUDA 11.3
+#conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
+## CUDA 11.6
+#conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.6 -c pytorch -c conda-forge
+## CPU Only
+#conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cpuonly -c pytorch
+
+## CUDA 11.8
+#conda install pytorch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 pytorch-cuda=11.8 -c pytorch -c nvidia
+## CUDA 12.1
+#conda install pytorch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 pytorch-cuda=12.1 -c pytorch -c nvidia
+## CPU Only
+#conda install pytorch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 cpuonly -c pytorch
 ```
+
 
 ### 4. Run the Program
 ```bash
