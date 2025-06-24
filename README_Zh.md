@@ -235,10 +235,36 @@ cd YOLOv11-RGBT
 根据上述三种方法之一，配置您的数据集目录或 TXT 文件。
 
 ### 3. 安装依赖
-(建议直接采用本电脑上已经搭建好的YOLOv11或者YOLOv8环境，不必重新下载)
+(建议直接采用本电脑上已经搭建好的YOLOv11或者YOLOv8环境，不必重新下载，或者按照下列方法安装)
 ```bash
+# 第一步：创建虚拟环境
+conda create -n pt121_py38 python=3.8
+
+# 第二步：安装 pytorch 
+conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
+
+# 第三步：安装 其余依赖项 
 pip install -r requirements.txt
+
+
+# https://pytorch.org/get-started/previous-versions/
+## CUDA 10.2
+#conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=10.2 -c pytorch
+## CUDA 11.3
+#conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
+## CUDA 11.6
+#conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.6 -c pytorch -c conda-forge
+## CPU Only
+#conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cpuonly -c pytorch
+
+## CUDA 11.8
+#conda install pytorch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 pytorch-cuda=11.8 -c pytorch -c nvidia
+## CUDA 12.1
+#conda install pytorch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 pytorch-cuda=12.1 -c pytorch -c nvidia
+## CPU Only
+#conda install pytorch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 cpuonly -c pytorch
 ```
+
 
 ### 4. 运行程序
 ```bash
