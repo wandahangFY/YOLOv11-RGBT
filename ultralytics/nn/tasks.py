@@ -104,7 +104,9 @@ from ultralytics.nn.modules.ppyolo import (
     ResNet50vd, ResNet50vd_dcn, ResNet101vd, PPConvBlock, Res2net50,
 
 )
-
+from ultralytics.nn.modules.yolov13_block import (
+    DSConv, DSC3k2, DownsampleConv, FullPAD_Tunnel, HyperACE
+)
 
 # 代码格式参考 B站 魔鬼面具
 DETECT_CLASS = (Detect,  Detect_LSCD, DetectAux, DetectDeepDBB, DetectWDBB,DetectV8)
@@ -1006,11 +1008,11 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
-            C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
+            C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,DSC3k2,
             ConvNormLayer,BasicBlock,BottleNeck,
             MANet, MANet_FasterBlock, MANet_FasterCGLU,MANet_Star,
             RepNCSPELAN4,
-            ELAN1,ELAN,ELAN_H,ELAN_t,SPPCSPCSIM,SPPCSPC,MP_1,MP_2,RepConv,
+            ELAN1,ELAN,ELAN_H,ELAN_t,SPPCSPCSIM,SPPCSPC,MP_1,MP_2,RepConv,DSConv,
             ADown,
             AConv,
             SPPELAN,
@@ -1033,7 +1035,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
-            C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,
+            C3k2,C3k2_DeepDBB,C3k2_DBB,C3k2_WDBB,C2f_DeepDBB,C2f_WDBB,C2f_DBB,C3k_RDBB,C2f_RDBB,C3k2_RDBB,A2C2f,DSC3k2,
             MANet, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star,
             C2fAttn,
             C3,
@@ -1186,6 +1188,30 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c1 = ch[f[0]]  # input channels
             c2 = sum(ch[x] for x in f)  # output channels
             args = [c1, *args]
+# -------------------------------------------------- YOLOv13 begin------------------------------------------------------
+        elif m is HyperACE:
+            c1 = ch[f[1]]
+            c2 = args[0]
+            c2 = make_divisible(min(c2, max_channels) * width, 8)
+            he = args[1]
+            if scale in "n":
+                he = int(args[1] * 0.5)
+            elif scale in "x":
+                he = int(args[1] * 1.5)
+            args = [c1, c2, n, he, *args[2:]]
+            n = 1
+            if scale in "lx":  # for L/X sizes
+                args.append(False)
+        elif m is DownsampleConv:
+            c1 = ch[f]
+            c2 = c1 * 2
+            args = [c1]
+            if scale in "lx":  # for L/X sizes
+                args.append(False)
+                c2 = c1
+        elif m is FullPAD_Tunnel:
+            c2 = ch[f[0]]
+#-------------------------------------------------- YOLOv13 end------------------------------------------------------
             # print(args,c2)
         elif m in ((WorldDetect,ImagePoolingAttn) + DETECT_CLASS + V10_DETECT_CLASS + SEGMENT_CLASS + POSE_CLASS + OBB_CLASS):
             args.append([ch[x] for x in f])
