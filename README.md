@@ -17,10 +17,12 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 ## News:
 - 2025-04-18  Add CTF [CTF](https://github.com/DocF/multispectral-object-detection)
 - 2025-05-31 New multi-spectral object detection dataset with arbitrary number of channels
-- 2025-06-18  Added the access link for the paper [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
+- 2025-06-18  Added the access link for the paper [YOLOv11-RGBT https://arxiv.org/abs/2506.14696](https://arxiv.org/abs/2506.14696)
 - 2025-06-18 Correction: This framework is applicable to all pixel-aligned images, not limited to multispectral images only, but also including depth maps and SAR images, etc.
 - 2025-06-19 Added the MCF training code and a simple tutorial corresponding to the paper
 - 2025-06-22 Added the NiNfusion and TransformerFusionBlock modules of ICAFusion (https://github.com/chanchanchan97/ICAFusion)
+- 2025-06-24 New additions: YOLOv13 and YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)
+
 
 ## Supported image formats（use_simotm）:
 1. uint8: 'Gray'  Single-channel 8-bit gray-scale image.  channels=1 ,  yaml   ch: 1 
