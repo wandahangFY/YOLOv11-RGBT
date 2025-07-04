@@ -16,13 +16,16 @@
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 ## 更新日志:
-- 2025-04-18  添加了 CTF [CTF](https://github.com/DocF/multispectral-object-detection)
-- 2025-05-31  新增 任意通道数目的多光谱目标检测数据集
-- 2025-06-18  新增了论文访问链接 [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
-- 2025-06-18  更正：本框架适合所有像素对齐的图像，不仅限于多光谱,包括深度图和SAR图像等
-- 2025-06-19 添加了论文所对应的MCF训练代码及简单教程
-- 2025-06-22 加入了ICAFusion的NiNfusion和TransformerFusionBlock模块 (https://github.com/chanchanchan97/ICAFusion)
+- 2025-07-04  模型权重百度网盘链接 - 链接:https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg   提取码:669j
 - 2025-06-24  新增YOLOv13及YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)
+- 2025-06-22 加入了ICAFusion的NiNfusion和TransformerFusionBlock模块 (https://github.com/chanchanchan97/ICAFusion)
+- 2025-06-19 添加了论文所对应的MCF训练代码及简单教程
+- 2025-06-18  更正：本框架适合所有像素对齐的图像，不仅限于多光谱,包括深度图和SAR图像等
+- 2025-06-18  新增了论文访问链接 [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
+- 2025-05-31  新增 任意通道数目的多光谱目标检测数据集
+- 2025-04-18  添加了 CTF [CTF](https://github.com/DocF/multispectral-object-detection)
+
+
 
 
 ## 支持图像格式（use_simotm）：
@@ -330,6 +333,12 @@ python val.py
 百度网盘链接：
 链接: https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A 提取码: 9rrf
 
+---
+# 模型权重文件下载链接
+- 如果使用了以下权重，请正确引用本项目所对应论文，YOLOv11项目或者论文(根据YOLOv11版权声明)以及数据集所对应的论文(如LLVIP版权声明)
+
+链接:https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg   提取码:669j
+
 
 
 
@@ -364,9 +373,9 @@ python val.py
 
 
 ## 文章链接
-[YOLO-MIF: Improved YOLOv8 with Multi-Information fusion for object detection in Gray-Scale images]( https://www.sciencedirect.com/science/article/pii/S1474034624003574)
+[YOLOv11-RGBT https://arxiv.org/abs/2506.14696](https://arxiv.org/abs/2506.14696)
 
-[https://www.sciencedirect.com/science/article/pii/S1474034624003574]( https://www.sciencedirect.com/science/article/pii/S1474034624003574)
+[YOLO-MIF: Improved YOLOv8 with Multi-Information fusion for object detection in Gray-Scale images]( https://www.sciencedirect.com/science/article/pii/S1474034624003574)
 
 ## 引用格式
 D. Wan, R. Lu, Y. Fang, X. Lang, S. Shu, J. Chen, S. Shen, T. Xu, Z. Ye, YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework, (2025). https://doi.org/10.48550/arXiv.2506.14696.
