@@ -15,13 +15,15 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 ## News:
-- 2025-04-18  Add CTF [CTF](https://github.com/DocF/multispectral-object-detection)
-- 2025-05-31 New multi-spectral object detection dataset with arbitrary number of channels
-- 2025-06-18  Added the access link for the paper [YOLOv11-RGBT https://arxiv.org/abs/2506.14696](https://arxiv.org/abs/2506.14696)
-- 2025-06-18 Correction: This framework is applicable to all pixel-aligned images, not limited to multispectral images only, but also including depth maps and SAR images, etc.
-- 2025-06-19 Added the MCF training code and a simple tutorial corresponding to the paper
-- 2025-06-22 Added the NiNfusion and TransformerFusionBlock modules of ICAFusion (https://github.com/chanchanchan97/ICAFusion)
+- 2025-07-04 New additions: Download link for model weight files [baidu drive](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg ) code: 669j
 - 2025-06-24 New additions: YOLOv13 and YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)
+- 2025-06-22 Added the NiNfusion and TransformerFusionBlock modules of ICAFusion (https://github.com/chanchanchan97/ICAFusion)
+- 2025-06-19 Added the MCF training code and a simple tutorial corresponding to the paper
+- 2025-06-18 Correction: This framework is applicable to all pixel-aligned images, not limited to multispectral images only, but also including depth maps and SAR images, etc.
+- 2025-06-18 Added the access link for the paper [YOLOv11-RGBT https://arxiv.org/abs/2506.14696](https://arxiv.org/abs/2506.14696)
+- 2025-05-31 New multi-spectral object detection dataset with arbitrary number of channels
+- 2025-04-18 Add CTF [CTF](https://github.com/DocF/multispectral-object-detection)
+
 
 
 ## Supported image formats（use_simotm）:
@@ -312,7 +314,10 @@ Here are the Baidu Netdisk links for the converted VEIAI, LLVIP, KAIST, M3FD dat
 Baidu Netdisk Link:
 Link: https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A Extraction Code: 9rrf
 
+# Download link for model weight files
+- If you use the following weights, please correctly cite the corresponding paper of this project, the YOLOv11 project or paper (as per the YOLOv11 copyright notice), and the paper corresponding to the dataset (such as the LLVIP copyright notice).
 
+- link:https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg   code:669j
 
 ## Contributions
 PRs or Issues are welcome to jointly improve the project. This project is a long-term open-source project and will continue to be updated for free in the future, so there is no need to worry about cost issues.
@@ -336,9 +341,10 @@ PRs or Issues are welcome to jointly improve the project. This project is a long
 - [Secondary Innovation Solutions]() [The last page of the PPT tutorial provides some secondary innovation solutions. TODO: Will be written and updated later if needed]
 
 ## Paper Link
+[YOLOv11-RGBT https://arxiv.org/abs/2506.14696](https://arxiv.org/abs/2506.14696)
+
 [YOLO-MIF: Improved YOLOv8 with Multi-Information fusion for object detection in Gray-Scale images]( https://www.sciencedirect.com/science/article/pii/S1474034624003574)
 
-[https://www.sciencedirect.com/science/article/pii/S1474034624003574]( https://www.sciencedirect.com/science/article/pii/S1474034624003574)
 
 ## Citation Format
 D. Wan, R. Lu, Y. Fang, X. Lang, S. Shu, J. Chen, S. Shen, T. Xu, Z. Ye, YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework, (2025). https://doi.org/10.48550/arXiv.2506.14696.
