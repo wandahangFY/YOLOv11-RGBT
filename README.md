@@ -23,7 +23,7 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 - 2025-06-18 Added the access link for the paper [YOLOv11-RGBT https://arxiv.org/abs/2506.14696](https://arxiv.org/abs/2506.14696)
 - 2025-05-31 New multi-spectral object detection dataset with arbitrary number of channels
 - 2025-04-18 Add CTF [CTF](https://github.com/DocF/multispectral-object-detection)
-
+- 2025-02-14 The first submission of fully trainable and analyzable code was made.
 
 
 ## Supported image formats（use_simotm）:
@@ -231,12 +231,14 @@ Configure your dataset directory or TXT file according to one of the three metho
 ```bash
 # Step 1.Create a virtual environment with conda
 conda create -n pt121_py38 python=3.8
+conda activate pt121_py38
 
 # Step 2: Install pytorch
 conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
 
 
 # Step 3: Install the remaining dependencies
+
 pip install -r requirements.txt
 
 

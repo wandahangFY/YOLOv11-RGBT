@@ -24,7 +24,7 @@
 - 2025-06-18  新增了论文访问链接 [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
 - 2025-05-31  新增 任意通道数目的多光谱目标检测数据集
 - 2025-04-18  添加了 CTF [CTF](https://github.com/DocF/multispectral-object-detection)
-
+- 2025-02-14  第一次提交完整可训练可推理的代码
 
 
 
@@ -242,6 +242,7 @@ cd YOLOv11-RGBT
 ```bash
 # 第一步：创建虚拟环境
 conda create -n pt121_py38 python=3.8
+conda activate pt121_py38
 
 # 第二步：安装 pytorch 
 conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
