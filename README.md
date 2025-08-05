@@ -1,4 +1,8 @@
-# YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework
+# [YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework](https://arxiv.org/abs/2506.14696)
+[![arXiv](https://img.shields.io/badge/arXiv-2503.07465-b31b1b.svg)](https://arxiv.org/abs/2506.14696) 
+[![Google Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Goole%20Drive-Models%20&%20Datasets-blue)](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link) 
+[![Baidu Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Baidu%20Drive-Models-green)](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j) 
+[![Baidu Drive Datasets](https://img.shields.io/static/v1?label=Baidu%20Drive&message=Datasets&color=green)](https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A?pwd=9rrf)
 
 ## Introduction
 This project aims to demonstrate how to configure visible and infrared datasets to accommodate multimodal object detection tasks based on YOLOv11. With three different configuration methods (directory configuration and TXT file configuration), you can easily associate visible light datasets with infrared datasets.
@@ -16,7 +20,7 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 
 ## News:
 - 2025-07-10 New additions: Download link for model weight files and datasets: [google drive](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
-- 2025-07-04 New additions: Download link for model weight files [baidu drive](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg ) code: 669j
+- 2025-07-04 New additions: Download link for model weight files [baidu drive](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j) code: 669j
 - 2025-06-24 New additions: YOLOv13 and YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)
 - 2025-06-22 Added the NiNfusion and TransformerFusionBlock modules of ICAFusion (https://github.com/chanchanchan97/ICAFusion)
 - 2025-06-19 Added the MCF training code and a simple tutorial corresponding to the paper
