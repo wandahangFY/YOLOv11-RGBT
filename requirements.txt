@@ -14,7 +14,7 @@ tqdm>=4.64.0
 thop
 
 
-# Util ------------------------------------------- 注意力机制相关
+# Util ------------------------------------------- Attention mechanism related  注意力机制相关
 einops>=0.7
 timm>=0.9
 efficientnet-pytorch>=0.7.1

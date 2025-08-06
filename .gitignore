@@ -29,7 +29,7 @@ MANIFEST
 #requirements.txt
 setup.py
 ultralytics.egg-info
-train_RGBT_kaist.py
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other info into it.
@@ -177,3 +177,4 @@ calibration_*.npy
 /train_RGBT_mine.py
 /train_RGBT_kaist_C.py
 #/transform_COCO_to_RGBT.py
+#/train_RGBT_kaist.py

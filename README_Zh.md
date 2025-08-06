@@ -1,5 +1,5 @@
 # [YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework](https://arxiv.org/abs/2506.14696)
-[![arXiv](https://img.shields.io/badge/arXiv-2503.07465-b31b1b.svg)](https://arxiv.org/abs/2506.14696) 
+[![arXiv](https://img.shields.io/badge/arXiv-2506.14696-b31b1b.svg)](https://arxiv.org/abs/2506.14696) 
 [![Google Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Goole%20Drive-Models%20&%20Datasets-blue)](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link) 
 [![Baidu Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Baidu%20Drive-Models-green)](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j) 
 [![Baidu Drive Datasets](https://img.shields.io/static/v1?label=Baidu%20Drive&message=Datasets&color=green)](https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A?pwd=9rrf)
