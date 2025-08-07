@@ -399,7 +399,6 @@ PRs or Issues are welcome to jointly improve the project. This project is a long
 ## Citation Format
 D. Wan, R. Lu, Y. Fang, X. Lang, S. Shu, J. Chen, S. Shen, T. Xu, Z. Ye, YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework, (2025). https://doi.org/10.48550/arXiv.2506.14696.
 
-
 @misc{wan2025yolov11rgbtcomprehensivesinglestagemultispectral,
       title={YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework}, 
       author={Dahang Wan and Rongsheng Lu and Yang Fang and Xianli Lang and Shuangbao Shu and Jingjing Chen and Siyuan Shen and Ting Xu and Zecong Ye},
@@ -416,7 +415,6 @@ D. Wan, R. Lu, Y. Fang, X. Lang, S. Shu, J. Chen, S. Shen, T. Xu, Z. Ye, YOLOv11
 - [Some modules reference from Devil Mask's open-source repository](https://github.com/z1069614715/objectdetection_script)
 - [YOLOv7](https://github.com/WongKinYiu/yolov7)
 - [Albumentations Data Augmentation Library](https://github.com/albumentations-team/albumentations)
-- Reparameterization validation code references from Handwritten AI's reparameterization course
 - [YOLO-AIR](https://github.com/iscyy/yoloair)
 - [CTF](https://github.com/DocF/multispectral-object-detection)
 
@@ -430,7 +428,7 @@ Other open-source projects are being organized and released gradually. Please ch
 
 ## FAQ
 1. Added README.md file (Completed)
-2. Detailed tutorials (TODO)
+2. Detailed tutorials (README.md)
 3. Project environment setup (The entire project is based on YOLOv8 version as of November 29, 2023, configuration referenced in README-YOLOv8.md file and requirements.txt)
 4. Explanation of folder correspondences (Consistent with YOLOv8, hyperparameters unchanged) (TODO: Detailed explanation)
 5. Summary of secondary innovation points and code implementation (TODO)
