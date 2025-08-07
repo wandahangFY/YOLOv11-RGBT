@@ -390,6 +390,51 @@ python heatmap_RGBT.py
 链接:https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg   提取码:669j
 
 
+## 项目文件说明
+
+| 名称                               | 作用说明                                           |
+| -------------------------------- |------------------------------------------------|
+| **目录**                           |                                                |
+| `.github`                        | 存放GitHub相关的配置文件，用于GitHub Actions的CI/CD流程。      |
+| `PaperImages`                    | 存储与论文相关的图片或图表。                                 |
+| `docker`                         | 存放与Docker相关的配置和脚本，用于容器化项目。                     |
+| `docs`                           | 项目文档存放处，如使用说明、API文档等。                          |
+| `examples`                       | 示例代码或配置文件，帮助用户快速上手。                            |
+| `tests`                          | 测试相关代码，用于验证项目功能。                               |
+| `ultralytics`                    | 包含与Ultralytics相关的代码或配置，Ultralytics是YOLO系列模型的开发团队。 |
+| **文件**                           |                                                |
+| `.dockerignore`                  | 指定在构建Docker镜像时要忽略的文件或目录。                       |
+| `.gitignore`                     | 定义Git版本控制中要忽略的文件或目录模式。                         |
+| `CITATION.cff`                   | 项目引用信息，方便他人引用项目。                               |
+| `CONTRIBUTING.md`                | 贡献指南，说明如何参与项目贡献。                               |
+| `LICENSE`                        | 项目的许可证信息，说明使用和分发的法律条款。                         |
+| `README.md`                      | 项目说明文件，包含项目介绍、使用方法等。                           |
+| `README_Zh.md`                   | README的中文版本，方便中文用户阅读。                          |
+| `YOLOv11-RGBT-2506.14696_v2.pdf` | 与项目相关的PDF文档，论文及详细说明。                           |
+| `detect-1C.py`                   | 用于单通道的检测任务示例，实际上，用一个文件即可。                      |
+| `detect-4C.py`                   | 用于四通道的检测任务。                                    |
+| `detect-6C.py`                   | 用于六通道的检测任务。                                    |
+| `detect-multispectral.py`        | 任意通道多光谱检测的脚本。                                      |
+| `detect.py`                      | 通用的检测脚本。                                       |
+| `export.py`                      | 导出模型相关功能。                                      |
+| `get_FPS.py`                     | 测量模型的帧率（FPS）。                                  |
+| `heatmap_RGBT.py`                | 生成热力图的脚本，可能用于可视化检测结果。                          |
+| `mkdocs.yml`                     | MkDocs的配置文件，用于生成项目文档。                          |
+| `pyproject.toml`                 | Python项目的构建配置文件。                               |
+| `requirements.txt`               | 项目依赖的Python包及其版本。                              |
+| `train-rt detr.py`               | RT-DETR模型的训练脚本。                                |
+| `train.py`                       | 通用的训练脚本。                                       |
+| `train_Gray.py`                  | 灰度图像的训练脚本。                                     |
+| `train_MCF_demo.py`              | MCF策略的训练演示脚本。                                  |
+| `train_RGBRGB.py`                | RGB+红外6通道 图像的训练脚本。                             |
+| `train_RGBT.py`                  | RGBT(4通道)图像的训练脚本。                              |
+| `train_RGBT_mine_print.py`       | 批量打印模型的参数量和计算量。                                |
+| `train_multispectral.py`         | 任意通道多光谱数据的训练脚本。                                |
+| `transform_COCO_to_RGBT.py`      | 将在COCO上预训练的网络权重转换为RGBT模型权重。                    |
+| `transform_MCF.py`               | 与MCF策略转换相关的脚本。                                 |
+| `transform_PGI.py`               | 与PGI策略转换相关的脚本。                                 |
+| `val_PGI.py`                     | PGI策略的验证脚本。                                    |
+| `val.py`                         | 模型验证脚本。                                        |
 
 
 ## 贡献

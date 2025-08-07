@@ -369,6 +369,53 @@ Link: https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A Extraction Code: 9rrf
 
 - link:https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg   code:669j
 
+
+## Project Structure Explanation
+| Name                             | Description                                                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Directories**                  |                                                                                                            |
+| `.github`                        | Stores GitHub-related configuration files for GitHub Actions CI/CD pipelines.                              |
+| `PaperImages`                    | Stores images or charts related to the paper.                                                              |
+| `docker`                         | Stores Docker-related configurations and scripts for project containerization.                             |
+| `docs`                           | Stores project documentation, such as user guides and API docs.                                            |
+| `examples`                       | Provides example code or configurations to help users get started quickly.                                 |
+| `tests`                          | Contains test code for verifying project functionality.                                                    |
+| `ultralytics`                    | Contains code or configurations related to Ultralytics, the development team behind the YOLO model series. |
+| **Files**                        |                                                                                                            |
+| `.dockerignore`                  | Specifies files or directories to ignore when building a Docker image.                                     |
+| `.gitignore`                     | Defines patterns for files or directories to ignore in Git version control.                                |
+| `CITATION.cff`                   | Provides citation information for the project.                                                             |
+| `CONTRIBUTING.md`                | Offers guidelines for contributing to the project.                                                         |
+| `LICENSE`                        | Contains license information for the project, outlining legal terms for use and distribution.              |
+| `README.md`                      | Project documentation file, including project introduction and usage instructions.                         |
+| `README_Zh.md`                   | Chinese version of the README for Chinese-speaking users.                                                  |
+| `YOLOv11-RGBT-2506.14696_v2.pdf` | Project-related PDF document, including papers and detailed explanations.                                  |
+| `detect-1C.py`                   | Example script for single-channel detection tasks.                                                         |
+| `detect-4C.py`                   | Script for four-channel detection tasks.                                                                   |
+| `detect-6C.py`                   | Script for six-channel detection tasks.                                                                    |
+| `detect-multispectral.py`        | Script for multispectral detection.                                                                        |
+| `detect.py`                      | General-purpose detection script.                                                                          |
+| `export.py`                      | Script for model export functionalities.                                                                   |
+| `get_FPS.py`                     | Measures the model's frame rate (FPS).                                                                     |
+| `heatmap_RGBT.py`                | Script for generating heatmaps, potentially for visualizing detection results.                             |
+| `mkdocs.yml`                     | Configuration file for MkDocs to generate project documentation.                                           |
+| `pyproject.toml`                 | Build configuration file for Python projects.                                                              |
+| `requirements.txt`               | Lists Python packages and versions required by the project.                                                |
+| `train-rt detr.py`               | Training script for the RT-DETR model.                                                                     |
+| `train.py`                       | General-purpose training script.                                                                           |
+| `train_Gray.py`                  | Training script for grayscale images.                                                                      |
+| `train_MCF_demo.py`              | Demo training script for the MCF strategy.                                                                 |
+| `train_RGBRGB.py`                | Training script for RGB + infrared 6-channel images.                                                       |
+| `train_RGBT.py`                  | Training script for RGBT (4-channel) images.                                                               |
+| `train_RGBT_mine_print.py`       | Prints the parameter and computation amounts of the model in batches.                                      |
+| `train_multispectral.py`         | Training script for multispectral data with arbitrary channels.                                            |
+| `transform_COCO_to_RGBT.py`      | Converts pre-trained network weights from COCO to RGBT model weights.                                      |
+| `transform_MCF.py`               | Script related to converting the MCF strategy.                                                             |
+| `transform_PGI.py`               | Script related to converting the PGI strategy.                                                             |
+| `val_PGI.py`                     | Validation script for the PGI strategy.                                                                    |
+| `val.py`                         | Model validation script.                                                                                   |
+
+
 ## Contributions
 PRs or Issues are welcome to jointly improve the project. This project is a long-term open-source project and will continue to be updated for free in the future, so there is no need to worry about cost issues.
 
