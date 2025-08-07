@@ -256,6 +256,11 @@ conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit
 # 第三步：安装 其余依赖项 
 pip install -r requirements.txt
 
+# 国内用下列命令安装：采用阿里镜像源,商业服务器租用时，清华源可能受限，无法下载，建议用阿里镜像源:
+# pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+
+# 第四步：安装环境到系统 (如果需要终端命令启动，或者多卡训练)
+pip install -e .
 
 # https://pytorch.org/get-started/previous-versions/
 ## CUDA 10.2
@@ -318,13 +323,51 @@ use_simotm: SimOTMBBS # (str) Pretreatment method
 python val.py
 ```
 
+
+### 6. 可视化
+#### 6.1 特征图可视化
+设置 detect.py 的 visualize=True:
+```python
+import warnings
+warnings.filterwarnings('ignore')
+from ultralytics import YOLO
+
+if __name__ == '__main__':
+    model = YOLO(r"runs/M3FD/M3FD_IF-yolo11n2/weights/best.pt") # select your model.pt path
+    model.predict(source=r'G:\wan\data\RGBT\M3FD_Detection\images_coco\infrared\trainval',
+                  imgsz=640,
+                  project='runs/detect',
+                  name='exp',
+                  show=False,
+                  save_frames=False,
+                  use_simotm="RGB",
+                  channels=3,
+                  save=False,
+                  # conf=0.2,
+                  visualize=True # visualize model features maps
+                )
+```
+```bash
+python detect.py
+```
+![img_feature_map_visualization](PaperImages/img_feature_map_visualization.png)
+
+
+#### 6.2 Gradcam: 热力图可视化
+运行 heatmap_RGBT.py :
+```bash
+python heatmap_RGBT.py
+```
+![img_heatmap_visualization](PaperImages/img_heatmap_visualization.jpg)
+
+
 ---
 
 ## 注意事项 （再次强调）
 - 确保可见光和红外光目录同级别，并且每个模态下有 `train` 和 `val` 子目录。
 - TXT 文件路径需包含 `visible`，以便程序自动替换为 `infrared`。
 - 如果遇到问题，请查看 `ultralytics/data/base.py` 中的 `load_image` 函数。
-
+- detect时目录也需要可见光和红外光目录同级别
 ---
 # 数据集下载链接
 
@@ -370,7 +413,7 @@ python val.py
 
 ## 中文解读链接
 - [修改YOLOv8为RGBT多通道和单通道灰度图像检测](https://zhuanlan.zhihu.com/p/716419187)
-
+- [YOLOv11-RGBT 论文解读-中文](https://mp.weixin.qq.com/s?chksm=ff76a74133af08172388bb5127ea1023751c2d92f46eda8074906e8690a5c137bc44fe230e82&scene=23&qq_aio_chat_type=2&srcid=08070UvMK8UDI638RYDeMlZJ&mpshare=1&mid=2247531181&idx=1&sharer_shareinfo=bb382e2cb8ac7d0dd7e904b012eb0c2f&sharer_shareinfo_first=bb382e2cb8ac7d0dd7e904b012eb0c2f&sn=aae766f60de666da47ce13aed261434b&__biz=MzU5OTA2Mjk5Mw==#rd)
 
 ## 视频教程链接
 - [YOLO-MIF 视频解读和二次创新方案]() [TODO: 文字版PPT详细教程]
@@ -386,7 +429,6 @@ python val.py
 
 ## 引用格式
 D. Wan, R. Lu, Y. Fang, X. Lang, S. Shu, J. Chen, S. Shen, T. Xu, Z. Ye, YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework, (2025). https://doi.org/10.48550/arXiv.2506.14696.
-
 
 @misc{wan2025yolov11rgbtcomprehensivesinglestagemultispectral,
       title={YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework}, 
@@ -405,7 +447,6 @@ D. Wan, R. Lu, Y. Fang, X. Lang, S. Shu, J. Chen, S. Shen, T. Xu, Z. Ye, YOLOv11
 - [部分模块参考魔鬼面具 开源主页代码](https://github.com/z1069614715/objectdetection_script)
 - [YOLOv7](https://github.com/WongKinYiu/yolov7)
 - [Albumentations 数据增强库](https://github.com/albumentations-team/albumentations)
-- 重参数化验证部分代码参考 手写AI 的重参数化课程
 - [YOLO-AIR](https://github.com/iscyy/yoloair)
 - [CTF](https://github.com/DocF/multispectral-object-detection)
 

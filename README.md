@@ -246,6 +246,13 @@ conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit
 
 pip install -r requirements.txt
 
+# If in China, more suitable:
+# pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+
+# Step 4: Install the environment to the system 
+      #(if terminal command startup is required, 
+      # or for multi-GPU training)
+pip install -e .
 
 # https://pytorch.org/get-started/previous-versions/
 ## CUDA 10.2
@@ -298,6 +305,42 @@ Run the test script to verify if the data loading is correct:
 ```bash
 python val.py
 ```
+
+### 6. Visualization
+#### 6.1 Feature map visualization
+Run the detect script for feature map visualization, set visualize=True:
+```python
+import warnings
+warnings.filterwarnings('ignore')
+from ultralytics import YOLO
+
+if __name__ == '__main__':
+    model = YOLO(r"runs/M3FD/M3FD_IF-yolo11n2/weights/best.pt") # select your model.pt path
+    model.predict(source=r'G:\wan\data\RGBT\M3FD_Detection\images_coco\infrared\trainval',
+                  imgsz=640,
+                  project='runs/detect',
+                  name='exp',
+                  show=False,
+                  save_frames=False,
+                  use_simotm="RGB",
+                  channels=3,
+                  save=False,
+                  # conf=0.2,
+                  visualize=True # visualize model features maps
+                )
+```
+```bash
+python detect.py
+```
+![img_feature_map_visualization](PaperImages/img_feature_map_visualization.png)
+
+
+#### 6.2 Gradcam: Heatmap visualization
+Run the heatmap_RGBT.py script for heatmap visualization:
+```bash
+python heatmap_RGBT.py
+```
+![img_heatmap_visualization](PaperImages/img_heatmap_visualization.jpg)
 
 ---
 
