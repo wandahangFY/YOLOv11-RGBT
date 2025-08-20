@@ -24,6 +24,24 @@ if __name__ == '__main__':
                   # conf=0.2,
                   # visualize=True # visualize model features maps
                 )
+
+    # OBB task
+
+    # model = YOLO(r"runs/dota8/dota8-yolo11n-RGBT-midfusion-obb-e300-16-21/weights/best.pt")  # select your model.pt path
+    # model.predict(source=r'G:\wan\data\dota8\dota8\images\train',
+    #               imgsz=640,
+    #               project='runs/detect',
+    #               name='exp',
+    #               show=False,
+    #               task='obb',
+    #               save_frames=True,
+    #               use_simotm="RGBT",
+    #               channels=4,
+    #               save=True,
+    #               #conf=0.0005,
+    #               # visualize=True # visualize model features maps
+    #               )
+
     # # VIDEO
     # model = YOLO(R"runs/M3FD/M3FD-yolov5-RGBT-midfusion/weights/best.pt") # select your model.pt path
     # model.predict(source=r"G:\wan\data\RGBT\testVD\visible\video.mp4",

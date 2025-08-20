@@ -1387,7 +1387,7 @@ class Annotator:
         # print(image.shape)
         if rotated:
             p1 = [int(b) for b in box[0]]
-            cv2.polylines(image, [np.asarray(box, dtype=int)], True, color, self.lw)
+            cv2.polylines(image, [np.asarray(box.cpu(), dtype=int)], True, color, self.lw) #8 OBB detect bug
         else:
             # p1 = (int(box[0]), int(box[1]))
             # p2 = (int(box[2]), int(box[3]))
