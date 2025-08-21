@@ -386,11 +386,12 @@ def get_flops(model, imgsz=640):
     """Return a YOLO model's FLOPs."""
     if not thop:
         return 0.0  # if not installed return 0.0 GFLOPs
+
     try:
         model = de_parallel(model)
         p = next(model.parameters())
-        # print(model.yaml['ch'])
         ch = int(model.yaml['ch'])
+        imgsz = model.args['imgsz'] if hasattr(model, 'args') else imgsz
         if not isinstance(imgsz, list):
             imgsz = [imgsz, imgsz]  # expand if int/float
         try:
