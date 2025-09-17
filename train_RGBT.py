@@ -19,6 +19,7 @@ if __name__ == '__main__':
                 # resume='', # last.pt path
                 # amp=False, # close amp
                 # fraction=0.2,
+                # pairs_rgb_ir=['visible','infrared'] , # default: ['visible','infrared'] , others: ['rgb', 'ir'],  ['images', 'images_ir'], ['images', 'image']
                 use_simotm="RGBT",
                 channels=4,
                 project='runs/LLVIP',

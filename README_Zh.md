@@ -21,6 +21,7 @@
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 ## 更新日志:
+- 2025-09-17 添加了 pairs_rgb_ir 参数，可以自定义可见光和红外的命名，原理是将字符1替换为字符2，默认pairs_rgb_ir= ['visible','infrared']
 - 2025-07-10 模型权重和数据集谷歌网盘链接: [google drive](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
 - 2025-07-04  模型权重百度网盘链接 - 链接:https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg   提取码:669j
 - 2025-06-24  新增YOLOv13及YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)

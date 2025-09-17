@@ -91,6 +91,7 @@ class RTDETRValidator(DetectionValidator):
             prefix=colorstr(f"{mode}: "),
             data=self.data,
             use_simotm=self.args.use_simotm,
+            pairs_rgb_ir=self.args.pairs_rgb_ir,
         )
 
     def postprocess(self, preds):

@@ -19,6 +19,7 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 ## News:
+- 2025-09-17 Added the "pairs_rgb_ir" parameter. By adding the "pairs_rgb_ir" parameter, you can customize the names for visible light and infrared. The principle is to replace character 1 with character 2. By default, pairs_rgb_ir = ['visible', 'infrared']
 - 2025-07-10 New additions: Download link for model weight files and datasets: [google drive](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
 - 2025-07-04 New additions: Download link for model weight files [baidu drive](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j) code: 669j
 - 2025-06-24 New additions: YOLOv13 and YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)

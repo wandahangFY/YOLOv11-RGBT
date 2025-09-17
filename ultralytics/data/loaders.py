@@ -320,11 +320,17 @@ class LoadImagesAndVideos:
         - Can read from a text file containing paths to images and videos.
     """
 
-    def __init__(self, path, batch=1, vid_stride=1,use_simotm="SimOTMBBS",imgsz=640):
+    def __init__(self, path, batch=1, vid_stride=1,use_simotm="SimOTMBBS",imgsz=640,pairs_rgb_ir= ['visible', 'infrared']):
         """Initialize dataloader for images and videos, supporting various input formats."""
         parent = None
         self.use_simotm = use_simotm
         self.imgsz=imgsz
+        self.pairs_rgb_ir = pairs_rgb_ir
+        # 若 self.pairs_rgb_ir 不是长度为 2 的字符列表，则重置为默认值
+        if not (isinstance(self.pairs_rgb_ir, list) and
+                len(self.pairs_rgb_ir) == 2 and
+                all(isinstance(x, str) for x in self.pairs_rgb_ir)):
+            self.pairs_rgb_ir = ['visible', 'infrared']
         self.augment=False
         if isinstance(path, str) and Path(path).suffix == ".txt":  # *.txt file with img/vid/dir on each line
             parent = Path(path).parent
@@ -376,6 +382,7 @@ class LoadImagesAndVideos:
     def __next__(self):
         """Returns the next batch of images or video frames along with their paths and metadata."""
         paths, imgs, info = [], [], []
+        pairs_rgb,pairs_ir=self.pairs_rgb_ir
         while len(imgs) < self.bs:
             if self.count >= self.nf:  # end of file list
                 if imgs:
@@ -500,8 +507,7 @@ class LoadImagesAndVideos:
                         im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
                         im0 = im0.astype(np.float32)
                         im0 = SimOTMSSS(im0)
-                    elif self.use_simotm == 'Multispectral':
-                        im0 = imread(path, cv2.IMREAD_COLOR)  # Multispectral
+
                     else:
                         pass
 
@@ -545,12 +551,9 @@ class LoadImagesAndVideos:
                     im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
                     im0 = im0.astype(np.float32)
                     im0 = SimOTMSSS(im0)
-                elif self.use_simotm == 'Multispectral':
-                    im0 = imread(path, cv2.IMREAD_COLOR)  # Multispectral
-                    print(im0.shape)
                 elif self.use_simotm == 'RGBT':
                     im_visible = cv2.imread(path)  # BGR
-                    im_infrared = cv2.imread(path.replace('visible', 'infrared'), cv2.IMREAD_GRAYSCALE)  # BGR
+                    im_infrared = cv2.imread(path.replace(pairs_rgb,pairs_ir), cv2.IMREAD_GRAYSCALE)  # BGR
 
                     h_vis, w_vis = im_visible.shape[:2]  # orig hw
                     h_inf, w_inf = im_infrared.shape[:2]  # orig hw
@@ -576,7 +579,7 @@ class LoadImagesAndVideos:
                     im0 = cv2.merge((b, g, r, im_infrared))
                 elif self.use_simotm == 'RGBRGB6C':
                     im_visible = cv2.imread(path)  # BGR
-                    im_infrared = cv2.imread(path.replace('visible', 'infrared'))  # BGR
+                    im_infrared = cv2.imread(path.replace(pairs_rgb,pairs_ir))  # BGR
 
                     h_vis, w_vis = im_visible.shape[:2]  # orig hw
                     h_inf, w_inf = im_infrared.shape[:2]  # orig hw
@@ -695,7 +698,8 @@ class LoadImagesAndVideos:
         self.frame = 0
 
         rgb_path =path
-        ir_path=rgb_path.replace('visible','infrared')
+        pairs_rgb, pairs_ir = self.pairs_rgb_ir
+        ir_path=rgb_path.replace(pairs_rgb, pairs_ir )
         # Initialize RGB video capture
         self.cap = cv2.VideoCapture(rgb_path)
         if not self.cap.isOpened():

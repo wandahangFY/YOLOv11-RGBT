@@ -10,6 +10,7 @@ if __name__ == '__main__':
               batch=16,
               use_simotm="RGBT",
               channels=4,
+              # pairs_rgb_ir=['visible','infrared'] , # default: ['visible','infrared'] , others: ['rgb', 'ir'],  ['images', 'images_ir'], ['images', 'image']
               # rect=False,
               # save_json=True, # if you need to cal coco metrice
               project='runs/val/LLVIP',

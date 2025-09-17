@@ -131,3 +131,4 @@ tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yam
 channels: 1 # (int) channels of model
 use_simotm: SimOTMBBS # (str) Pretreatment method
 brightness: 0.2 # (float) image brightness (probability)
+pairs_rgb_ir: ['visible','infrared']

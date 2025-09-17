@@ -179,3 +179,4 @@ calibration_*.npy
 #/transform_COCO_to_RGBT.py
 #/train_RGBT_kaist.py
 /ultralytics/cfg/datasets/dota8_MINE.yaml
+/val2.py

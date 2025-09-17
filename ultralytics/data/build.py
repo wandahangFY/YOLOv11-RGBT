@@ -93,7 +93,7 @@ def seed_worker(worker_id):  # noqa
     random.seed(worker_seed)
 
 
-def build_yolo_dataset(cfg, img_path, batch, data, mode="train", rect=False, stride=32, multi_modal=False, use_simotm="RGB",):
+def build_yolo_dataset(cfg, img_path, batch, data, mode="train", rect=False, stride=32, multi_modal=False, use_simotm="RGB",pairs_rgb_ir= ['visible', 'infrared']):
     """Build YOLO Dataset."""
     dataset = YOLOMultiModalDataset if multi_modal else YOLODataset
     return dataset(
@@ -113,6 +113,7 @@ def build_yolo_dataset(cfg, img_path, batch, data, mode="train", rect=False, str
         data=data,
         fraction=cfg.fraction if mode == "train" else 1.0,
         use_simotm=use_simotm,
+        pairs_rgb_ir=pairs_rgb_ir,
     )
 
 
@@ -184,7 +185,8 @@ def check_source(source):
     return source, webcam, screenshot, from_img, in_memory, tensor
 
 
-def load_inference_source(source=None, batch=1, vid_stride=1, buffer=False,use_simotm="SimOTMBBS",imgsz=640):
+
+def load_inference_source(source=None, batch=1, vid_stride=1, buffer=False,use_simotm="SimOTMBBS",imgsz=640,pairs_rgb_ir= ['visible', 'infrared']):
     """
     Loads an inference source for object detection and applies necessary transformations.
 
@@ -212,7 +214,7 @@ def load_inference_source(source=None, batch=1, vid_stride=1, buffer=False,use_s
     elif from_img:
         dataset = LoadPilAndNumpy(source)
     else:
-        dataset = LoadImagesAndVideos(source, batch=batch, vid_stride=vid_stride,use_simotm=use_simotm,imgsz=imgsz)
+        dataset = LoadImagesAndVideos(source, batch=batch, vid_stride=vid_stride,use_simotm=use_simotm,imgsz=imgsz,pairs_rgb_ir=pairs_rgb_ir)
 
     # Attach source types to the dataset
     setattr(dataset, "source_type", source_type)

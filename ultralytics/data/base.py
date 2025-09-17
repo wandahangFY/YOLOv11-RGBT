@@ -107,7 +107,8 @@ class BaseDataset(Dataset):
         single_cls=False,
         classes=None,
         fraction=1.0,
-            use_simotm="RGB"
+        use_simotm="RGB",
+        pairs_rgb_ir=['visible', 'infrared']
     ):
         """Initialize BaseDataset with given configuration and options."""
         super().__init__()
@@ -129,6 +130,14 @@ class BaseDataset(Dataset):
         if self.rect:
             assert self.batch_size is not None
             self.set_rectangle()
+
+        self.pairs_rgb_ir=pairs_rgb_ir
+        # 若 self.pairs_rgb_ir 不是长度为 2 的字符列表，则重置为默认值
+        # If self.pairs_rgb_ir is not a list of characters with a length of 2, then reset it to the default value.
+        if not (isinstance(self.pairs_rgb_ir, list) and
+                len(self.pairs_rgb_ir) == 2 and
+                all(isinstance(x, str) for x in self.pairs_rgb_ir)):
+            self.pairs_rgb_ir = ['visible', 'infrared']
 
         # Buffer thread for mosaic images
         self.buffer = []  # buffer size = batch size
@@ -196,47 +205,10 @@ class BaseDataset(Dataset):
             if self.single_cls:
                 self.labels[i]["cls"][:, 0] = 0
 
-    # def load_image(self, i, rect_mode=True):
-    #     """Loads 1 image from dataset index 'i', returns (im, resized hw)."""
-    #     im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
-    #     if im is None:  # not cached in RAM
-    #         if fn.exists():  # load npy
-    #             try:
-    #                 im = np.load(fn)
-    #             except Exception as e:
-    #                 LOGGER.warning(f"{self.prefix}WARNING ⚠️ Removing corrupt *.npy image file {fn} due to: {e}")
-    #                 Path(fn).unlink(missing_ok=True)
-    #                 im = cv2.imread(f)  # BGR
-    #         else:  # read image
-    #             im = cv2.imread(f)  # BGR
-    #         if im is None:
-    #             raise FileNotFoundError(f"Image Not Found {f}")
-    #
-    #         h0, w0 = im.shape[:2]  # orig hw
-    #         if rect_mode:  # resize long side to imgsz while maintaining aspect ratio
-    #             r = self.imgsz / max(h0, w0)  # ratio
-    #             if r != 1:  # if sizes are not equal
-    #                 w, h = (min(math.ceil(w0 * r), self.imgsz), min(math.ceil(h0 * r), self.imgsz))
-    #                 im = cv2.resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
-    #         elif not (h0 == w0 == self.imgsz):  # resize by stretching image to square imgsz
-    #             im = cv2.resize(im, (self.imgsz, self.imgsz), interpolation=cv2.INTER_LINEAR)
-    #
-    #         # Add to buffer if training with augmentations
-    #         if self.augment:
-    #             self.ims[i], self.im_hw0[i], self.im_hw[i] = im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
-    #             self.buffer.append(i)
-    #             if 1 < len(self.buffer) >= self.max_buffer_length:  # prevent empty buffer
-    #                 j = self.buffer.pop(0)
-    #                 if self.cache != "ram":
-    #                     self.ims[j], self.im_hw0[j], self.im_hw[j] = None, None, None
-    #
-    #         return im, (h0, w0), im.shape[:2]
-    #
-    #     return self.ims[i], self.im_hw0[i], self.im_hw[i]
-
     def load_image(self, i, rect_mode=True):
         """Loads 1 image from dataset index 'i', returns (im, resized hw)."""
         im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
+        pairs_rgb, pairs_ir = self.pairs_rgb_ir
         if im is None:  # not cached in RAM
             if fn.exists():  # load npy
                 try:
@@ -268,7 +240,7 @@ class BaseDataset(Dataset):
                     im = SimOTMSSS(im)
                 elif self.use_simotm == 'RGBT':
                     im_visible = cv2.imread(f)  # BGR
-                    im_infrared = cv2.imread(f.replace('visible', 'infrared'), cv2.IMREAD_GRAYSCALE)  # BGR
+                    im_infrared = cv2.imread(f.replace(pairs_rgb, pairs_ir), cv2.IMREAD_GRAYSCALE)  # BGR
                     if im_visible is None or im_infrared is None:
                         raise FileNotFoundError(f"Image Not Found {f}")
                     h_vis, w_vis = im_visible.shape[:2]  # orig hw
@@ -294,7 +266,7 @@ class BaseDataset(Dataset):
                     im = cv2.merge((b, g, r, im_infrared))
                 elif self.use_simotm == 'RGBRGB6C':
                     im_visible = cv2.imread(f)  # BGR
-                    im_infrared = cv2.imread(f.replace('visible', 'infrared'))  # BGR
+                    im_infrared = cv2.imread(f.replace(pairs_rgb, pairs_ir))  # BGR
                     if im_visible is None or im_infrared is None:
                         raise FileNotFoundError(f"Image Not Found {f}")
                     h_vis, w_vis = im_visible.shape[:2]  # orig hw

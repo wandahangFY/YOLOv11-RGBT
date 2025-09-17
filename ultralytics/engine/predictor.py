@@ -251,6 +251,7 @@ class BasePredictor:
             buffer=self.args.stream_buffer,
             use_simotm=self.args.use_simotm,
             imgsz=self.args.imgsz,
+            pairs_rgb_ir=self.args.pairs_rgb_ir,
         )
         self.source_type = self.dataset.source_type
         if not getattr(self, "stream", True) and (
