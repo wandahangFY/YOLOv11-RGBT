@@ -459,7 +459,7 @@ class yolo_heatmap:
         
 def get_params():
     params = {
-        'weight': 'best.pt', # 现在只需要指定权重即可,不需要指定cfg
+        'weight': 'LLVIP-yolo11n-RGBT-midfusion-MCF.pt', # 现在只需要指定权重即可,不需要指定cfg M3FD-yolo11n-RGBT-midfusion-MCF.pt  best.pt
         'device': 'cuda:0',
         'method': 'GradCAMPlusPlus', # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM, KPCA_CAM
         'layer': [10, 12, 14, 16, 18],#[10, 12, 14, 16, 18],    [30, 33, 36, 39, 42]
@@ -470,8 +470,8 @@ def get_params():
         'renormalize': False, # 需要把热力图限制在框内请设置为True(仅对detect,segment,pose有效)
         'task':'detect', # 任务(detect,segment,pose,obb,classify)
         'img_size':640, # 图像尺寸
-        'channels':4,
-        'use_simotm': 'RGBT',  #  RGBRGB6C    RGB  RGBT
+        'channels':6,
+        'use_simotm': 'RGBRGB6C',  #  RGBRGB6C    RGB  RGBT
 
     }
     return params
@@ -479,5 +479,5 @@ def get_params():
 # pip install grad-cam==1.5.4 --no-deps
 if __name__ == '__main__':
     model = yolo_heatmap(**get_params())
-    model(r"G:\wan\data\RGBT\test\visible", 'result')
+    model(r"G:\wan\data\RGBT\test\visible", 'result2')
     # model(r'/home/hjj/Desktop/dataset/dataset_coco/coco/images/val2017', 'result')

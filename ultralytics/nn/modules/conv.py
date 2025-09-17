@@ -394,11 +394,8 @@ class NumberToChannel(nn.Module):
     def forward(self, x):
 
         x1, x2 = torch.chunk(x, 2, dim=0)  # 按照batch size分离成两个tensor
-        combined_output = torch.cat((x1, x2),
-                                    dim=1)  # 将两个tensor按通道合并                                                                                         c_times_2, H, W)
+        combined_output = torch.cat((x1, x2), dim=1)  # 将两个tensor按通道合并   c_times_2, H, W)
         return combined_output
-
-        return x
 
 #------------------------------------------- 灵感来自于v9 ------------------------------
 
