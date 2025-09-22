@@ -988,7 +988,7 @@ class Annotator:
             if self.im is not None and len(self.im.shape) == 3 and self.im.shape[2] == 4:
                 self.im = np.concatenate([self.im, self.im[..., 3:4], self.im[..., 3:4]], axis=-1)
             elif self.im is not None and (len(self.im.shape) == 3 and self.im.shape[2] == 1):
-                self.im = np.concatenate([self.im, self.im[..., 0], self.im[..., 0]], axis=-1)
+                self.im = np.concatenate([self.im, self.im,self.im], axis=-1)
             elif self.im is not None and len(self.im.shape) == 2 :
                 self.im = np.expand_dims(self.im, axis=-1)
                 self.im = np.concatenate([self.im, self.im, self.im], axis=-1)
