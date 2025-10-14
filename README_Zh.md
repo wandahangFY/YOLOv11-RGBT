@@ -5,6 +5,8 @@
 [![Baidu Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Baidu%20Drive-Models-green)](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j) 
 [![Baidu Drive Datasets](https://img.shields.io/static/v1?label=Baidu%20Drive&message=Datasets&color=green)](https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A?pwd=9rrf)
 
+![FLIR_Parameters:](PaperImages/FLIR_Parameters.png)
+
 # YOLOv11-RGBT: 迈向全面的单阶段多光谱目标检测框架
 
 # YOLOv11-RGBT 项目快速启动教程：多模态数据集配置（可见光与红外光）
