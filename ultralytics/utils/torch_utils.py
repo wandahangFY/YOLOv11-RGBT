@@ -318,7 +318,7 @@ def model_info(model, detailed=False, verbose=True, imgsz=640):
     yaml_file = getattr(model, "yaml_file", "") or getattr(model, "yaml", {}).get("yaml_file", "")
     model_name = Path(yaml_file).stem.replace("yolo", "YOLO") or "Model"
     LOGGER.info(f"{model_name} summary{fused}: {n_l:,} layers, {n_p:,} parameters, {n_g:,} gradients{fs}")
-    # LOGGER.info(f"{model_name} summary{fused}: {n_l:,} layers, {n_p/1024.0/1024.0:.2f,} M parameters,{n_p:,} parameters, {n_g:,} gradients{fs}")
+    # LOGGER.info(f"{model_name} summary{fused}: {n_l:,} layers, {n_p/1000.0/1000:.2f,} M parameters,{n_p:,} parameters, {n_g:,} gradients{fs}")
     return n_l, n_p, n_g, flops
 
 

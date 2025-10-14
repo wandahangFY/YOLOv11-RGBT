@@ -1,5 +1,6 @@
 # [YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework](https://arxiv.org/abs/2506.14696)
-[![arXiv](https://img.shields.io/badge/arXiv-2506.14696-b31b1b.svg)](https://arxiv.org/abs/2506.14696) 
+[![arXiv](https://img.shields.io/badge/arXiv-2506.14696-b31b1b.svg)](https://arxiv.org/abs/2506.14696)
+[![One Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20One%20Drive-Models%20&%20Datasets-blue)](https://1drv.ms/f/c/384d71bb2abb0199/Eh78MfQQYMNGi1owiw4yqywBHMVzltmccCuPRfkOriALgg?e=wDKPPx)
 [![Google Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Goole%20Drive-Models%20&%20Datasets-blue)](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link) 
 [![Baidu Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Baidu%20Drive-Models-green)](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j) 
 [![Baidu Drive Datasets](https://img.shields.io/static/v1?label=Baidu%20Drive&message=Datasets&color=green)](https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A?pwd=9rrf)
@@ -19,6 +20,7 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 ## News:
+- 2025-10-14 Model weights & Dataset (OneDrive): [one drive](https://1drv.ms/f/c/384d71bb2abb0199/Eh78MfQQYMNGi1owiw4yqywBHMVzltmccCuPRfkOriALgg?e=wDKPPx)
 - 2025-09-17 Added the "pairs_rgb_ir" parameter. By adding the "pairs_rgb_ir" parameter, you can customize the names for visible light and infrared. The principle is to replace character 1 with character 2. By default, pairs_rgb_ir = ['visible', 'infrared']
 - 2025-07-10 New additions: Download link for model weight files and datasets: [google drive](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
 - 2025-07-04 New additions: Download link for model weight files [baidu drive](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j) code: 669j
@@ -50,7 +52,7 @@ Among them, the directory format of 1-4 is consistent with YOLOv8. With train.tx
 In YOLOv8, the visible light (visible) directory must conform to the dataset configuration principles. Additionally, an infrared (infrared) directory must exist at the same level as the visible light directory. Furthermore, the dataset should be divided into `train` and `val` (optional) subdirectories for training and validation purposes, respectively.
 
 ### 2. Configuration Methods
-Below are three recommended configuration methods:
+Below are four recommended configuration methods (Method 1 is preferred and matches the *NewVersion* dataset in the shared drive; the other three are legacy layouts for older releases):
 
 #### Important Notes
 - Ensure that the visible and infrared directories are at the same level.
@@ -59,7 +61,85 @@ Below are three recommended configuration methods:
 
 ---
 
-#### Method 1: Directory Configuration (KAIST Configuration Example)
+
+#### Method 1: Directory Layout (FLIR example, matching the “new-version” folder in the shared drive)
+Store RGB and thermal data in two peer-level folders. Each modality contains train and test sub-folders. The structure is:
+```
+dataset/                  # root of the real dataset; keep any name, any location
+│   ├── visible/          # RGB images + labels
+│   │   ├── train/        # training split
+│   │   │    ├── image1.jpg 
+│   │   │    ├── image1.txt   
+│   │   │    ├── image2.jpg   
+│   │   │    ├── image2.txt 
+│   │   │    └── ...
+│   │   └── test/         # val / test split
+│   │        ├── image5.jpg 
+│   │        ├── image5.txt   
+│   │        ├── image6.jpg   
+│   │        ├── image6.txt 
+│   │        └── ...
+│   └── infrared/         # thermal images + labels
+│       ├── train/        # training split
+│       │    ├── image1.jpg 
+│   │   │    ├── image1.txt   
+│   │   │    ├── image2.jpg   
+│   │   │    ├── image2.txt 
+│   │   │    └── ...
+│       └── test/         # val / test split
+│            ├── image5.jpg 
+│            ├── image5.txt   
+│            ├── image6.jpg   
+│            ├── image6.txt 
+│            └── ...
+labels/                   # optional; can be omitted
+    ├── train/
+    │   ├── image1.txt
+    │   └── image2.txt
+    └── test/
+        ├── image5.txt
+        └── image6.txt
+
+```
+```
+# FLIR_aligned-rgbt.yaml  RGB + thermal dataset descriptor
+
+path: E:/BaiduNetdiskDownload/RGBTO/FLIR3C  # change to your path
+train: visible/train
+val:   visible/test
+
+## absolute paths also work
+# train: E:/BaiduNetdiskDownload/RGBTO/FLIR3C/visible/train
+# val:   E:/BaiduNetdiskDownload/RGBTO/FLIR3C/visible/test
+
+# number of classes
+nc: 3
+
+# class names
+names: ["person", "car", "bicycle"]
+```
+
+```
+# FLIR_aligned-rgb.yaml  RGB-only descriptor (same content, for clarity)
+
+path: E:/BaiduNetdiskDownload/RGBTO/FLIR3C
+train: visible/train
+val:   visible/test
+nc: 3
+names: ["person", "car", "bicycle"]
+```
+
+```
+# FLIR_aligned-inf.yaml  thermal-only descriptor
+
+path: E:/BaiduNetdiskDownload/RGBTO/FLIR3C
+train: infrared/train
+val:   infrared/test
+nc: 3
+names: ["person", "car", "bicycle"]
+```
+
+#### Method 2: Directory Configuration (KAIST Configuration Example)
 Store visible and infrared data in directories at the same level, with each modality divided into `train` and `val` subdirectories. The directory structure is as follows:
 
 ```
@@ -103,7 +183,7 @@ names: [ 'person', ]
 
 The program will automatically recognize visible and infrared data through the directory structure.
 
-#### Method 2: Directory Configuration (Configuration Example)
+#### Method 3: Directory Configuration (Configuration Example)
 Under the second-level directory, store visible and infrared data in directories at the same level, with each modality divided into `train` and `val` subdirectories. The directory structure is as follows:
 
 ```
@@ -158,7 +238,7 @@ names: [ 'person', ]
 
 The program will automatically recognize visible and infrared data through the directory structure.
 
-#### Method 3: TXT File Configuration (VEDAI Configuration Example)
+#### Method 4: TXT File Configuration (VEDAI Configuration Example)
 Use TXT files to specify data paths. The TXT file content should include visible light image paths, and the program will automatically replace them with the corresponding infrared paths. TXT files need to specify the paths for the training and validation sets (default configuration method for YOLOv5, YOLOv8, YOLOv11).
 
 ```

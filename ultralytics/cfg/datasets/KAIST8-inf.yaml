@@ -1,0 +1,25 @@
+# download:
+#[![One Drive Models](https://1drv.ms/f/c/384d71bb2abb0199/Eh78MfQQYMNGi1owiw4yqywBHMVzltmccCuPRfkOriALgg?e=wDKPPx)
+#[![Google Drive Models](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
+#[![Baidu Drive Models]](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j)
+#[![Baidu Drive Datasets](https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A?pwd=9rrf)
+
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+#train:  G:/wan/data/RGBT/KAIST8/KAIST8C/images/rgb/train  # 7601 images
+#val:  G:/wan/data/RGBT/KAIST8/KAIST8C/images/rgb/test # 2257 images
+
+
+path: E:/BaiduNetdiskDownload/RGBTO/KAIST8
+train: infrared/train
+val: infrared/test
+
+## or
+#train: E:/BaiduNetdiskDownload/RGBTO/KAIST8/infrared/train
+#val: E:/BaiduNetdiskDownload/RGBTO/KAIST8/infrared/test
+
+
+# number of classes
+nc: 1
+
+# class names
+names: [ 'person', ]

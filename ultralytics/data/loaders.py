@@ -507,12 +507,10 @@ class LoadImagesAndVideos:
                         im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
                         im0 = im0.astype(np.float32)
                         im0 = SimOTMSSS(im0)
-
+                    elif self.use_simotm == 'Multispectral':
+                        im0 = imread(path, cv2.IMREAD_COLOR)  # Multispectral
                     else:
-                        pass
-
-
-
+                        im0 = cv2.imread(path)  # BGR
 
                     if success:
                         self.frame += 1
@@ -604,6 +602,8 @@ class LoadImagesAndVideos:
                     b2, g2, r2 = cv2.split(im_infrared)
                     # 合并成6通道图像
                     im0 = cv2.merge((b, g, r, b2, g2, r2))
+                elif self.use_simotm == 'Multispectral':
+                    im0 = imread(path, cv2.IMREAD_COLOR)  # Multispectral
                 else:
                     im0 = cv2.imread(path)  # BGR
                 if im0 is None:

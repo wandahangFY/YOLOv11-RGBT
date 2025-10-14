@@ -1,5 +1,6 @@
 # [YOLOv11-RGBT: Towards a Comprehensive Single-Stage Multispectral Object Detection Framework](https://arxiv.org/abs/2506.14696)
 [![arXiv](https://img.shields.io/badge/arXiv-2506.14696-b31b1b.svg)](https://arxiv.org/abs/2506.14696) 
+[![One Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20One%20Drive-Models%20&%20Datasets-blue)](https://1drv.ms/f/c/384d71bb2abb0199/Eh78MfQQYMNGi1owiw4yqywBHMVzltmccCuPRfkOriALgg?e=wDKPPx)
 [![Google Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Goole%20Drive-Models%20&%20Datasets-blue)](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link) 
 [![Baidu Drive Models](https://img.shields.io/badge/%F0%9F%A4%97%20Baidu%20Drive-Models-green)](https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg?pwd=669j) 
 [![Baidu Drive Datasets](https://img.shields.io/static/v1?label=Baidu%20Drive&message=Datasets&color=green)](https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A?pwd=9rrf)
@@ -21,12 +22,14 @@
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 ## 更新日志:
-- 2025-09-17 添加了 pairs_rgb_ir 参数，可以自定义可见光和红外的命名，原理是将字符1替换为字符2，默认pairs_rgb_ir= ['visible','infrared']
-- 2025-07-10 模型权重和数据集谷歌网盘链接: [google drive](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
-- 2025-07-04  模型权重百度网盘链接 - 链接:https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg   提取码:669j
+- 2025-10-14  模型权重和数据集One网盘链接: [one drive](https://1drv.ms/f/c/384d71bb2abb0199/Eh78MfQQYMNGi1owiw4yqywBHMVzltmccCuPRfkOriALgg?e=wDKPPx)
+- 2025-09-17  添加了 pairs_rgb_ir 参数，可以自定义可见光和红外的命名，原理是将字符1替换为字符2，默认pairs_rgb_ir= ['visible','infrared']
+- 2025-07-10  模型权重和数据集谷歌网盘链接: [google drive](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
+- 2025-07-04  模型权重百度网盘链接 - 链接:https://pan.baidu.com/s/1Q6H98fiW_f7Kdq6-Ms6oUg ?pwd=669j  提取码:669j
+- 2025-07-04  数据集百度网盘链接 - 链接:https://pan.baidu.com/s/1xOUP6UTQMXwgErMASPLj2A?pwd=9rrf  提取码:9rrf
 - 2025-06-24  新增YOLOv13及YOLOv13-RGBT [paper](https://arxiv.org/abs/2506.17733) [code](https://github.com/iMoonLab/yolov13)
-- 2025-06-22 加入了ICAFusion的NiNfusion和TransformerFusionBlock模块 (https://github.com/chanchanchan97/ICAFusion)
-- 2025-06-19 添加了论文所对应的MCF训练代码及简单教程
+- 2025-06-22  加入了ICAFusion的NiNfusion和TransformerFusionBlock模块 (https://github.com/chanchanchan97/ICAFusion)
+- 2025-06-19  添加了论文所对应的MCF训练代码及简单教程
 - 2025-06-18  更正：本框架适合所有像素对齐的图像，不仅限于多光谱,包括深度图和SAR图像等
 - 2025-06-18  新增了论文访问链接 [YOLOv11-RGBT](https://arxiv.org/abs/2506.14696)
 - 2025-05-31  新增 任意通道数目的多光谱目标检测数据集
@@ -52,15 +55,115 @@
 在 YOLOv8 中，可见光（visible）目录需要符合数据集配置原则。同时，可见光目录同级别下必须存在红外光（infrared）目录。此外，数据集需要分为 `train` 和 `val`（可选）子目录，分别用于训练和验证。
 
 ### 2. 配置方法
-以下是两种推荐的配置方法：
+以下是4种推荐的配置方法(建议第一种。第一种对应网盘 新版本数据集，后面三种对应老版本的数据集配置方式)：
 #### 注意事项  
 - 确保可见光和红外光目录同级别。
 - 如果采用txt文件构建yaml文件， TXT 文件路径需包含 `visible`，以便程序自动替换为 `infrared`。
 - 如果遇到问题，请查看 `ultralytics/data/base.py` 中的 `load_image` 函数。
 
 ---
+#### 方法 1：目录配置（FLIR数据集 配置示例，对应网盘 新版本数据集目录）
+将可见光和红外光数据分别存储在同级别的目录中，每个模态下分为 `train` 和 `val` 子目录。目录结构如下：
 
-#### 方法 1：目录配置（KAIST 配置示例）
+```
+dataset/                  # 实际数据集的地址，不用改名为dataset，放在任意位置都行
+│   ├── visible/          # 存储 可见光图像 + 标签
+│   │   ├── train/        # 训练
+│   │   │    ├── image1.jpg 
+│   │   │    ├── image1.txt   
+│   │   │    ├── image2.jpg   
+│   │   │    ├── image2.txt 
+│   │   │    └── ...
+│   │   │    
+│   │   └── test/        # 验证/测试
+│   │        ├── image5.jpg 
+│   │        ├── image5.txt   
+│   │        ├── image6.jpg   
+│   │        ├── image6.txt 
+│   │        └── ...
+│   │       
+│   └── infrared/         # 存储红外图像 + 标签
+│       ├── train/        # 训练
+│       │    ├── image1.jpg 
+│       │    ├── image1.txt   
+│       │    ├── image2.jpg   
+│       │    ├── image2.txt 
+│       │    └── ...
+│       │    
+│       └── test/         # 验证/测试
+│            ├── image5.jpg 
+│            ├── image5.txt   
+│            ├── image6.jpg   
+│            ├── image6.txt 
+│            └── ...
+labels/                 # 可选 这个目录可不用
+    ├── train/          # 训练图像标签
+    │   ├── image1.txt   
+    │   └── image2.txt   
+    └── test/         # 验证/测试标签
+        ├── image5.txt 
+        └── image6.txt 
+
+```
+```
+# FLIR_aligned-rgbt.yaml  可见光+红外 数据集 yaml
+
+path: E:/BaiduNetdiskDownload/RGBTO/FLIR3C  #更改为实际地址
+train: visible/train
+val: visible/test
+
+## or
+#train: E:/BaiduNetdiskDownload/RGBTO/FLIR3C/visible/train
+#val: E:/BaiduNetdiskDownload/RGBTO/FLIR3C/visible/test
+
+
+# number of classes
+nc: 3
+
+# class names
+names: ["person", "car", "bicycle"]
+```
+
+```
+# FLIR_aligned-rgbt.yaml  可见光 数据集 yaml
+
+path: E:/BaiduNetdiskDownload/RGBTO/FLIR3C  #更改为实际地址
+train: visible/train
+val: visible/test
+
+## or
+#train: E:/BaiduNetdiskDownload/RGBTO/FLIR3C/visible/train
+#val: E:/BaiduNetdiskDownload/RGBTO/FLIR3C/visible/test
+
+
+# number of classes
+nc: 3
+
+# class names
+names: ["person", "car", "bicycle"]
+
+```   
+```
+# FLIR_aligned-inf.yaml  红外 数据集 yaml
+
+path: E:/BaiduNetdiskDownload/RGBTO/FLIR3C  #更改为实际地址
+train: infrared/train
+val: infrared/test
+
+## or
+#train: E:/BaiduNetdiskDownload/RGBTO/FLIR3C/infrared/train
+#val: E:/BaiduNetdiskDownload/RGBTO/FLIR3C/infrared/test
+
+
+# number of classes
+nc: 3
+
+# class names
+names: ["person", "car", "bicycle"]
+
+```   
+
+#### 方法 2：目录配置（KAIST 配置示例）
 将可见光和红外光数据分别存储在同级别的目录中，每个模态下分为 `train` 和 `val` 子目录。目录结构如下：
 
 ```
@@ -108,7 +211,7 @@ names: [ 'person', ]
 
 
 
-#### 方法 2：目录配置（ 配置示例）
+#### 方法 3：目录配置（ 配置示例）
 二级目录下，将可见光和红外光数据分别存储在同级别的目录中，每个模态下分为 `train` 和 `val` 子目录。目录结构如下：
 
 ```
@@ -168,7 +271,7 @@ names: [ 'person', ]
 
 
 
-#### 方法 3：TXT 文件配置（VEDAI 配置示例）
+#### 方法 4：TXT 文件配置（VEDAI 配置示例）
 使用 TXT 文件指定数据路径。TXT 文件内容应包含可见光图像路径，程序会自动将其替换为对应的红外光路径。TXT 文件需要分别指定训练集和验证集的路径（YOLOv5，YOLOv8，YOLOv11 默认配置方法）。
 
 ```
