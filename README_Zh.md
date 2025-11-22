@@ -24,6 +24,7 @@
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 ## 更新日志:
+- 2025-11-22  新增 1.TIFF图像支持(所有模式)  2. 16位任意通道数目的多光谱目标检测数据集
 - 2025-10-14  模型权重和数据集One网盘链接: [one drive](https://1drv.ms/f/c/384d71bb2abb0199/Eh78MfQQYMNGi1owiw4yqywBHMVzltmccCuPRfkOriALgg?e=wDKPPx)
 - 2025-09-17  添加了 pairs_rgb_ir 参数，可以自定义可见光和红外的命名，原理是将字符1替换为字符2，默认pairs_rgb_ir= ['visible','infrared']
 - 2025-07-10  模型权重和数据集谷歌网盘链接: [google drive](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
@@ -48,6 +49,7 @@
 5. unit8: 'RGBT' 四通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=4 ,  yaml   ch: 4 
 6. unit8: 'RGBRGB6C' 六通道8位多光谱图像。(包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=6 ,  yaml   ch: 6 
 7. unit8: 'Multispectral'  任意通道8位多光谱图像 (包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=n
+8. unit16: 'Multispectral_16bit'  16-位 任意通道 多光谱图像 (包括前期融合，中期融合，后期融合，分数融合，权重共享模式) channels=n
 
 
 

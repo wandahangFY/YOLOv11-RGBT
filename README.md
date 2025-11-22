@@ -21,6 +21,7 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 ![YOLOv11-RGBT-RGBT:](PaperImages/YOLOv11-RGBT.jpg)
 
 ## News:
+- 2025-11-22 New addition: 1. TIFF image support (for all modes)  2. 16-bit multi-spectral target detection dataset with any number of channels
 - 2025-10-14 Model weights & Dataset (OneDrive): [one drive](https://1drv.ms/f/c/384d71bb2abb0199/Eh78MfQQYMNGi1owiw4yqywBHMVzltmccCuPRfkOriALgg?e=wDKPPx)
 - 2025-09-17 Added the "pairs_rgb_ir" parameter. By adding the "pairs_rgb_ir" parameter, you can customize the names for visible light and infrared. The principle is to replace character 1 with character 2. By default, pairs_rgb_ir = ['visible', 'infrared']
 - 2025-07-10 New additions: Download link for model weight files and datasets: [google drive](https://drive.google.com/drive/folders/14T2OaLAiMxlx8WJVyJ2x5DLI8RNI0R8m?usp=drive_link)
@@ -43,6 +44,7 @@ This project aims to demonstrate how to configure visible and infrared datasets 
 5. unit8: 'RGBT' Four-channel 8-bit color image.(Including early fusion, middle fusion, late fusion, score fusion, weight sharing mode)  channels=4 ,  yaml   ch: 4 
 6. unit8: 'RGBRGB6C' Six-channel 8-bit color image.(Including early fusion, middle fusion, late fusion, score fusion, weight sharing mode) channels=6 ,  yaml   ch: 6 
 7. unit8: 'Multispectral'  8-bit multi-spectral images for any channel (including pre-fusion, mid-fusion, post-fusion, fractional fusion, and weight-sharing mode) channels=n
+8. unit16: 'Multispectral_16bit'  16-bit multi-spectral images for any channel (including pre-fusion, mid-fusion, post-fusion, fractional fusion, and weight-sharing mode) channels=n
 
 Among them, the directory format of 1-4 is consistent with YOLOv8. With train.txt and val.txt, all you need to do is write the image address below visible, and the data format directory of 'RGBT' is as follows:
 

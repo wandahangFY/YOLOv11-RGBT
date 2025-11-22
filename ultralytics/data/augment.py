@@ -2908,6 +2908,14 @@ class Format:
             img = np.concatenate((img3c, img3c2), axis=0)
         else:
             img = np.ascontiguousarray(img.transpose(2, 0, 1)[::-1])
+            # 检查图像数据类型,如果图像数据类型不是 uint8，则转换为 float32
+        if img.dtype.kind == 'u' or img.dtype.kind == 'i':
+            # 如果是整数类型 (unsigned 'u' 或 signed 'i')
+            if img.dtype != np.uint8:
+                # 如果不是 uint8，则转换为 float32, 并未归一化到 [0.0, 1.0]
+                # img = img.astype(np.float32) / np.iinfo(img.dtype).max
+                img = img.astype(np.float32)
+        # 如果已经是浮点类型，则不做处理
         img = torch.from_numpy(img)
         return img
 
@@ -3595,7 +3603,7 @@ class Albumentations4C:
 
 def v8_transforms(dataset, imgsz, hyp,stretch=False):
     """Convert images to a size suitable for YOLOv8 training."""
-    dtype=np.uint8 if hyp.use_simotm!="Gray16bit" else np.float32
+    dtype=np.uint8 if hyp.use_simotm not in {"Gray16bit","Multispectral_16bit"} else np.float32
     pre_transform = Compose([
         Mosaic(dataset, imgsz=imgsz, p=hyp.mosaic,dtype=dtype),
         CopyPaste(p=hyp.copy_paste,dtype=dtype ),

@@ -179,27 +179,29 @@ class BaseDataset(Dataset):
             use_simotm = self.use_simotm
 
         if use_simotm == 'Gray2BGR':
-            im = cv2.imread(file_path)  # BGR
+            im = imread(file_path)  # BGR
         elif use_simotm == 'SimOTM':
-            im = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
+            im = imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
             im = SimOTM(im)
         elif use_simotm == 'SimOTMBBS':
-            im = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
+            im = imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
             im = SimOTMBBS(im)
         elif use_simotm == 'Gray':
-            im = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
+            im = imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
         elif use_simotm == 'Gray16bit':
-            im = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)  # GRAY
+            im = imread(file_path, cv2.IMREAD_UNCHANGED)  # GRAY
             im = im.astype(np.float32)
         elif use_simotm == 'Multispectral':
-            im = cv2.imread(file_path, cv2.IMREAD_COLOR)  # Multispectral
+            im = imread(file_path, cv2.IMREAD_COLOR)  # Multispectral
+        elif use_simotm == 'Multispectral_16bit':
+            im = imread(file_path, cv2.IMREAD_UNCHANGED)  # Multispectral  16bit
         elif use_simotm == 'SimOTMSSS':
-            im = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
+            im = imread(file_path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
             im = im.astype(np.float32)
             im = SimOTMSSS(im)
         elif use_simotm == 'RGBT':
-            im_visible = cv2.imread(file_path)  # BGR
-            im_infrared = cv2.imread(file_path.replace(pairs_rgb, pairs_ir), cv2.IMREAD_GRAYSCALE)  # GRAY
+            im_visible = imread(file_path)  # BGR
+            im_infrared = imread(file_path.replace(pairs_rgb, pairs_ir), cv2.IMREAD_GRAYSCALE)  # GRAY
 
             if im_visible is None or im_infrared is None:
                 raise FileNotFoundError(f"Image Not Found {file_path}")
@@ -207,8 +209,8 @@ class BaseDataset(Dataset):
             im_visible, im_infrared = self._resize_images(im_visible, im_infrared)
             im = self._merge_channels(im_visible, im_infrared)
         elif use_simotm == 'RGBRGB6C':
-            im_visible = cv2.imread(file_path)  # BGR
-            im_infrared = cv2.imread(file_path.replace(pairs_rgb, pairs_ir))  # BGR
+            im_visible = imread(file_path)  # BGR
+            im_infrared = imread(file_path.replace(pairs_rgb, pairs_ir))  # BGR
 
             if im_visible is None or im_infrared is None:
                 raise FileNotFoundError(f"Image Not Found {file_path}")
@@ -216,7 +218,7 @@ class BaseDataset(Dataset):
             im_visible, im_infrared = self._resize_images(im_visible, im_infrared)
             im = self._merge_channels_rgb(im_visible, im_infrared)
         else:
-            im = cv2.imread(file_path, cv2.IMREAD_COLOR)  # BGR
+            im = imread(file_path, cv2.IMREAD_COLOR)  # BGR
 
         if im is None:
             raise FileNotFoundError(f"Image Not Found {file_path}")
@@ -265,7 +267,7 @@ class BaseDataset(Dataset):
                 except Exception as e:
                     LOGGER.warning(f"{self.prefix}WARNING ⚠️ Removing corrupt *.npy image file {fn} due to: {e}")
                     Path(fn).unlink(missing_ok=True)
-                    # im = cv2.imread(f,cv2.IMREAD_COLOR)  # BGR
+                    # im = imread(f,cv2.IMREAD_COLOR)  # BGR
                     im = self.load_and_preprocess_image(f, use_simotm=self.use_simotm, pairs_rgb=pairs_rgb, pairs_ir=pairs_ir)
             else:  # read image
                 im = self.load_and_preprocess_image(f, use_simotm=self.use_simotm, pairs_rgb=pairs_rgb, pairs_ir=pairs_ir)
@@ -324,7 +326,7 @@ class BaseDataset(Dataset):
         n = min(self.ni, 30)  # extrapolate from 30 random images
         for _ in range(n):
             im_file = random.choice(self.im_files)
-            im = cv2.imread(im_file)
+            im = imread(im_file)
             if im is None:
                 continue
 
@@ -354,7 +356,7 @@ class BaseDataset(Dataset):
         b, gb = 0, 1 << 30  # bytes of cached images, bytes per gigabytes
         n = min(self.ni, 30)  # extrapolate from 30 random images
         for _ in range(n):
-            im = cv2.imread(random.choice(self.im_files))  # sample image
+            im = imread(random.choice(self.im_files))  # sample image
             if im is None:
                 continue
             ratio = self.imgsz / max(im.shape[0], im.shape[1])  # max(h, w)  # ratio

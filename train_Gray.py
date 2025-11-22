@@ -8,7 +8,7 @@ if __name__ == '__main__':
     model.train(data=R'ultralytics/cfg/datasets/BCCD.yaml',
                 cache=False,
                 imgsz=640,
-                epochs=300,
+                epochs=30,
                 batch=16,
                 close_mosaic=10,
                 workers=2,

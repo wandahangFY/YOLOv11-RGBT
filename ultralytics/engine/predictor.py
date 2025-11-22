@@ -167,6 +167,10 @@ class BasePredictor:
                 im = np.concatenate((img3c, img3c2), axis=1)
             else: # Multispectral
                 im = np.ascontiguousarray(im.transpose(0, 3, 1, 2)[:, ::-1, :, :])  # BGR to RGB, BHWC to BCHW, (n, 3, h, w)
+            if im.dtype.kind == 'u' or im.dtype.kind == 'i':
+                # 如果是整数类型 (unsigned 'u' 或 signed 'i')
+                if im.dtype != np.uint8:
+                    im = im.astype(np.float32)
             im = torch.from_numpy(im)
 
         # NOTE: assuming im with (b, 3, h, w) if it's a tensor

@@ -448,8 +448,8 @@ class LoadImagesAndVideos:
                                     # 合并成四通道图像
                                     im0 = cv2.merge((b, g, r, im_infrared))
                             elif self.use_simotm == 'RGBRGB6C':
-                                # im_visible = cv2.imread(path)  # BGR
-                                # im_infrared = cv2.imread(path.replace('visible', 'infrared'))  # BGR
+                                # im_visible = imread(path)  # BGR
+                                # im_infrared = imread(path.replace('visible', 'infrared'))  # BGR
                                 im_visible = im0  # BGR
                                 im_infrared = im0_ir  # BGR
                                 if len(im_infrared.shape) == 2:
@@ -491,26 +491,28 @@ class LoadImagesAndVideos:
                                     im0 = cv2.merge((b, g, r, b2, g2, r2))
 
                     elif self.use_simotm == 'Gray2BGR':
-                        im0 = cv2.imread(path)  # BGR
+                        im0 = imread(path)  # BGR
                     elif self.use_simotm == 'SimOTM':
-                        im0 = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
+                        im0 = imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
                         im0 = SimOTM(im0)
                     elif self.use_simotm == 'SimOTMBBS':
-                        im0 = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
+                        im0 = imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
                         im0 = SimOTMBBS(im0)
                     elif self.use_simotm == 'Gray':
-                        im0 = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
+                        im0 = imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
                     elif self.use_simotm == 'Gray16bit':
-                        im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # GRAY
+                        im0 = imread(path, cv2.IMREAD_UNCHANGED)  # GRAY
                         im0 = im0.astype(np.float32)
                     elif self.use_simotm == 'SimOTMSSS':
-                        im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
+                        im0 = imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
                         im0 = im0.astype(np.float32)
                         im0 = SimOTMSSS(im0)
                     elif self.use_simotm == 'Multispectral':
                         im0 = imread(path, cv2.IMREAD_COLOR)  # Multispectral
+                    elif self.use_simotm == 'Multispectral_16bit':
+                        im0 = imread(path, cv2.IMREAD_UNCHANGED)  # Multispectral  16bit
                     else:
-                        im0 = cv2.imread(path)  # BGR
+                        im0 = imread(path)  # BGR
 
                     if success:
                         self.frame += 1
@@ -531,27 +533,27 @@ class LoadImagesAndVideos:
                         self._new_video(self.files[self.count])
             else:
                 self.mode = "image"
-                # im0 = cv2.imread(path)  # BGR
+                # im0 = imread(path)  # BGR
                 if self.use_simotm == 'Gray2BGR':
-                    im0 = cv2.imread(path)  # BGR
+                    im0 = imread(path)  # BGR
                 elif self.use_simotm == 'SimOTM':
-                    im0 = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
+                    im0 = imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
                     im0 = SimOTM(im0)
                 elif self.use_simotm == 'SimOTMBBS':
-                    im0 = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
+                    im0 = imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
                     im0 = SimOTMBBS(im0)
                 elif self.use_simotm == 'Gray':
-                    im0 = cv2.imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
+                    im0 = imread(path, cv2.IMREAD_GRAYSCALE)  # GRAY
                 elif self.use_simotm == 'Gray16bit':
-                    im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # GRAY
+                    im0 = imread(path, cv2.IMREAD_UNCHANGED)  # GRAY
                     im0 = im0.astype(np.float32)
                 elif self.use_simotm == 'SimOTMSSS':
-                    im0 = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
+                    im0 = imread(path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
                     im0 = im0.astype(np.float32)
                     im0 = SimOTMSSS(im0)
                 elif self.use_simotm == 'RGBT':
-                    im_visible = cv2.imread(path)  # BGR
-                    im_infrared = cv2.imread(path.replace(pairs_rgb,pairs_ir), cv2.IMREAD_GRAYSCALE)  # BGR
+                    im_visible = imread(path)  # BGR
+                    im_infrared = imread(path.replace(pairs_rgb,pairs_ir), cv2.IMREAD_GRAYSCALE)  # BGR
 
                     h_vis, w_vis = im_visible.shape[:2]  # orig hw
                     h_inf, w_inf = im_infrared.shape[:2]  # orig hw
@@ -576,8 +578,8 @@ class LoadImagesAndVideos:
                     # 合并成四通道图像
                     im0 = cv2.merge((b, g, r, im_infrared))
                 elif self.use_simotm == 'RGBRGB6C':
-                    im_visible = cv2.imread(path)  # BGR
-                    im_infrared = cv2.imread(path.replace(pairs_rgb,pairs_ir))  # BGR
+                    im_visible = imread(path)  # BGR
+                    im_infrared = imread(path.replace(pairs_rgb,pairs_ir))  # BGR
 
                     h_vis, w_vis = im_visible.shape[:2]  # orig hw
                     h_inf, w_inf = im_infrared.shape[:2]  # orig hw
@@ -604,8 +606,10 @@ class LoadImagesAndVideos:
                     im0 = cv2.merge((b, g, r, b2, g2, r2))
                 elif self.use_simotm == 'Multispectral':
                     im0 = imread(path, cv2.IMREAD_COLOR)  # Multispectral
+                elif self.use_simotm == 'Multispectral_16bit':
+                    im0 = imread(path, cv2.IMREAD_UNCHANGED)  # Multispectral  16bit
                 else:
-                    im0 = cv2.imread(path)  # BGR
+                    im0 = imread(path)  # BGR
                 if im0 is None:
                     LOGGER.warning(f"WARNING ⚠️ Image Read Error {path}")
                 else:

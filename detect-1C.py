@@ -22,6 +22,6 @@ if __name__ == '__main__':
                   use_simotm="Gray", # Gray: uint8  Gray16bit: uint16
                   channels=1,
                   save=True,
-                  # conf=0.2,
+                  conf=0.01,
                   # visualize=True # visualize model features maps
                 )

@@ -1382,9 +1382,14 @@ class Annotator:
         """
         # print(image.dtype)
         image=image.copy()
+        image = image.copy()
+        if image.ndim == 3 and image.shape[-1] != 3:
+            # 如果通道数不是3，则只取前3个通道
+            image = image[..., :3]
+
         if image.dtype != np.uint8:
             image = image.astype(np.uint8)
-        # print(image.shape)
+
         if rotated:
             p1 = [int(b) for b in box[0]]
             cv2.polylines(image, [np.asarray(box.cpu(), dtype=int)], True, color, self.lw) #8 OBB detect bug

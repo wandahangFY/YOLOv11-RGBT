@@ -6,7 +6,7 @@ if __name__ == '__main__':
     model = YOLO('ultralytics/cfg/models/11-RGBT/yolo11n-RGBT-midfusion.yaml')
     # model.info(True,True)
     # model.load('yolov8n.pt') # loading pretrain weights
-    model.train(data=R'ultralytics/cfg/datasets/LLVIP.yaml',
+    model.train(data=R'ultralytics/cfg/datasets/LLVIP-rgbt.yaml',
                 cache=False,
                 imgsz=640,
                 epochs=300,
