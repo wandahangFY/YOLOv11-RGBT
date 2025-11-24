@@ -59,7 +59,7 @@ head:
   - [-1, 2, C3k2, [256, False]] # 30 (P3/8-small)
 
   - [-1, 1, Conv, [256, 3, 2]]
-  - [[-1, 25], 1, Concat, [1]] # cat head P4
+  - [[-1, 27], 1, Concat, [1]] # cat head P4  (#19) 25->27
   - [-1, 2, C3k2, [512, False]] # 33 (P4/16-medium)
 
   - [-1, 1, Conv, [512, 3, 2]]
@@ -77,7 +77,7 @@ head:
   - [ -1, 2, C3k2, [ 256, False ] ] # 42 (P3/8-small)
 
   - [-1, 1, Conv, [256, 3, 2]]
-  - [[-1, 37], 1, Concat, [1]] # cat head P4
+  - [[-1, 39], 1, Concat, [1]] # cat head P4  (#19) 37->39
   - [-1, 2, C3k2, [512, False]] # 45 (P4/16-medium)
 
   - [-1, 1, Conv, [512, 3, 2]]
