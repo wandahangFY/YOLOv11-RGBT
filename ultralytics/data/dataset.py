@@ -37,7 +37,7 @@ from .utils import (
     verify_image,
     verify_image_label,
 )
-
+from ultralytics.utils.patches import imread
 # Ultralytics dataset *.cache version, >= 1.0.0 for YOLOv8
 DATASET_CACHE_VERSION = "1.0.3"
 
@@ -419,7 +419,10 @@ class ClassificationDataset:
                 debugging. Default is an empty string.
         """
         import torchvision  # scope for faster 'import ultralytics'
-
+        # print(args)
+        self.pairs_rgb_ir=args.pairs_rgb_ir
+        self.use_simotm = args.use_simotm
+        self.imgsz=args.imgsz
         # Base class assigned as attribute rather than used as base class to allow for scoping slow torchvision import
         if TORCHVISION_0_18:  # 'allow_empty' argument first introduced in torchvision 0.18
             self.base = torchvision.datasets.ImageFolder(root=root, allow_empty=True)
@@ -454,25 +457,56 @@ class ClassificationDataset:
                 hsv_h=args.hsv_h,
                 hsv_s=args.hsv_s,
                 hsv_v=args.hsv_v,
+                channels=args.channels
             )
             if augment
-            else classify_transforms(size=args.imgsz, crop_fraction=args.crop_fraction)
+            else classify_transforms(size=args.imgsz, crop_fraction=args.crop_fraction,channels=args.channels)
         )
 
     def __getitem__(self, i):
         """Returns subset of data and targets corresponding to given indices."""
         f, j, fn, im = self.samples[i]  # filename, index, filename.with_suffix('.npy'), image
+        # print(f)
+        pairs_rgb, pairs_ir = self.pairs_rgb_ir
         if self.cache_ram:
             if im is None:  # Warning: two separate if statements required here, do not combine this with previous line
-                im = self.samples[i][3] = cv2.imread(f)
+                im = self.samples[i][3] = self.load_and_preprocess_image(f, use_simotm=self.use_simotm, pairs_rgb=pairs_rgb, pairs_ir=pairs_ir)
         elif self.cache_disk:
             if not fn.exists():  # load npy
                 np.save(fn.as_posix(), cv2.imread(f), allow_pickle=False)
             im = np.load(fn)
         else:  # read image
-            im = cv2.imread(f)  # BGR
+            im = self.load_and_preprocess_image(f, use_simotm=self.use_simotm, pairs_rgb=pairs_rgb, pairs_ir=pairs_ir)
+        # print(im.shape)
         # Convert NumPy array to PIL image
-        im = Image.fromarray(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
+        if len(im.shape) == 2:  # 1-channel grayscale image
+            pass
+        elif len(im.shape) == 3:
+            if im.shape[2] == 1:  # 1-channel grayscale image with single channel
+                pass
+            elif im.shape[2] == 3:  # 3-channel RGB/BGR image
+                im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+            elif im.shape[2] == 4:  # 4-channel RGB+IR image
+                # Convert the first 3 channels to RGB and keep the 4th channel as is
+                rgb_part = cv2.cvtColor(im[:, :, :3], cv2.COLOR_BGR2RGB)
+                ir_part = im[:, :, 3:]
+                im = np.concatenate((rgb_part, ir_part), axis=2)
+            elif im.shape[2] == 6:  # 6-channel RGB+RGB image
+                # Convert the first 3 channels to RGB and the next 3 channels to RGB
+                rgb_part1 = cv2.cvtColor(im[:, :, :3], cv2.COLOR_BGR2RGB)
+                rgb_part2 = cv2.cvtColor(im[:, :, 3:6], cv2.COLOR_BGR2RGB)
+                im = np.concatenate((rgb_part1, rgb_part2), axis=2)
+            else:  # Arbitrary number of channels
+                # Convert the first 3 channels to RGB if they exist
+                if im.shape[2] > 3:
+                    rgb_part = cv2.cvtColor(im[:, :, :3], cv2.COLOR_BGR2RGB)
+                    remaining_part = im[:, :, 3:]
+                    im = np.concatenate((rgb_part, remaining_part), axis=2)
+                else:
+                    raise ValueError(f"Unsupported image format with {im.shape[2]} channels")
+        else:
+            raise ValueError(f"Unsupported image format: {im.shape}")
+        # print(im.shape)
         sample = self.torch_transforms(im)
         return {"img": sample, "cls": j}
 
@@ -519,3 +553,85 @@ class ClassificationDataset:
             x["msgs"] = msgs  # warnings
             save_dataset_cache_file(self.prefix, path, x, DATASET_CACHE_VERSION)
             return samples
+
+    def load_and_preprocess_image(self, file_path, use_simotm=None, pairs_rgb=None, pairs_ir=None):
+        if use_simotm is None:
+            use_simotm = self.use_simotm
+
+        if use_simotm == 'Gray2BGR':
+            im = imread(file_path)  # BGR
+        elif use_simotm == 'SimOTM':
+            im = imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
+            im = SimOTM(im)
+        elif use_simotm == 'SimOTMBBS':
+            im = imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
+            im = SimOTMBBS(im)
+        elif use_simotm == 'Gray':
+            im = imread(file_path, cv2.IMREAD_GRAYSCALE)  # GRAY
+        elif use_simotm == 'Gray16bit':
+            im = imread(file_path, cv2.IMREAD_UNCHANGED)  # GRAY
+            im = im.astype(np.float32)
+        elif use_simotm == 'Multispectral':
+            im = imread(file_path, cv2.IMREAD_COLOR)  # Multispectral
+        elif use_simotm == 'Multispectral_16bit':
+            im = imread(file_path, cv2.IMREAD_UNCHANGED)  # Multispectral  16bit
+        elif use_simotm == 'SimOTMSSS':
+            im = imread(file_path, cv2.IMREAD_UNCHANGED)  # TIF 16bit
+            im = im.astype(np.float32)
+            im = SimOTMSSS(im)
+        elif use_simotm == 'RGBT':
+            im_visible = imread(file_path)  # BGR
+            im_infrared = imread(file_path.replace(pairs_rgb, pairs_ir), cv2.IMREAD_GRAYSCALE)  # GRAY
+
+            if im_visible is None or im_infrared is None:
+                raise FileNotFoundError(f"Image Not Found {file_path}")
+
+            im_visible, im_infrared = self._resize_images(im_visible, im_infrared)
+            im = self._merge_channels(im_visible, im_infrared)
+        elif use_simotm == 'RGBRGB6C':
+            im_visible = imread(file_path)  # BGR
+            im_infrared = imread(file_path.replace(pairs_rgb, pairs_ir))  # BGR
+
+            if im_visible is None or im_infrared is None:
+                raise FileNotFoundError(f"Image Not Found {file_path}")
+
+            im_visible, im_infrared = self._resize_images(im_visible, im_infrared)
+            im = self._merge_channels_rgb(im_visible, im_infrared)
+        else:
+            im = imread(file_path, cv2.IMREAD_COLOR)  # BGR
+
+        if im is None:
+            raise FileNotFoundError(f"Image Not Found {file_path}")
+
+        return im
+
+    def _resize_images(self, im_visible, im_infrared):
+        h_vis, w_vis = im_visible.shape[:2]  # orig hw
+        h_inf, w_inf = im_infrared.shape[:2]  # orig hw
+
+        if h_vis != h_inf or w_vis != w_inf:
+            r_vis = self.imgsz / max(h_vis, w_vis)  # ratio
+            r_inf = self.imgsz / max(h_inf, w_inf)  # ratio
+
+            if r_vis != 1:  # if sizes are not equal
+                interp = cv2.INTER_LINEAR if (self.augment or r_vis > 1) else cv2.INTER_AREA
+                im_visible = cv2.resize(im_visible, (
+                    min(math.ceil(w_vis * r_vis), self.imgsz), min(math.ceil(h_vis * r_vis), self.imgsz)),
+                                        interpolation=interp)
+            if r_inf != 1:  # if sizes are not equal
+                interp = cv2.INTER_LINEAR if (self.augment or r_inf > 1) else cv2.INTER_AREA
+                im_infrared = cv2.resize(im_infrared, (
+                    min(math.ceil(w_inf * r_inf), self.imgsz), min(math.ceil(h_inf * r_inf), self.imgsz)),
+                                         interpolation=interp)
+        return im_visible, im_infrared
+
+    def _merge_channels(self, im_visible, im_infrared):
+        b, g, r = cv2.split(im_visible)
+        im = cv2.merge((b, g, r, im_infrared))
+        return im
+
+    def _merge_channels_rgb(self, im_visible, im_infrared):
+        b, g, r = cv2.split(im_visible)
+        b2, g2, r2 = cv2.split(im_infrared)
+        im = cv2.merge((b, g, r, b2, g2, r2))
+        return im

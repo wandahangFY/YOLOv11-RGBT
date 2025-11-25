@@ -2239,105 +2239,297 @@ class RandomLoadText:
         return labels
 
 
-# def v8_transforms(dataset, imgsz, hyp, stretch=False):
-#     """
-#     Applies a series of image transformations for training.
-#
-#     This function creates a composition of image augmentation techniques to prepare images for YOLO training.
-#     It includes operations such as mosaic, copy-paste, random perspective, mixup, and various color adjustments.
-#
-#     Args:
-#         dataset (Dataset): The dataset object containing image data and annotations.
-#         imgsz (int): The target image size for resizing.
-#         hyp (Namespace): A dictionary of hyperparameters controlling various aspects of the transformations.
-#         stretch (bool): If True, applies stretching to the image. If False, uses LetterBox resizing.
-#
-#     Returns:
-#         (Compose): A composition of image transformations to be applied to the dataset.
-#
-#     Examples:
-#         >>> from ultralytics.data.dataset import YOLODataset
-#         >>> from ultralytics.utils import IterableSimpleNamespace
-#         >>> dataset = YOLODataset(img_path="path/to/images", imgsz=640)
-#         >>> hyp = IterableSimpleNamespace(mosaic=1.0, copy_paste=0.5, degrees=10.0, translate=0.2, scale=0.9)
-#         >>> transforms = v8_transforms(dataset, imgsz=640, hyp=hyp)
-#         >>> augmented_data = transforms(dataset[0])
-#     """
-#     mosaic = Mosaic(dataset, imgsz=imgsz, p=hyp.mosaic)
-#     affine = RandomPerspective(
-#         degrees=hyp.degrees,
-#         translate=hyp.translate,
-#         scale=hyp.scale,
-#         shear=hyp.shear,
-#         perspective=hyp.perspective,
-#         pre_transform=None if stretch else LetterBox(new_shape=(imgsz, imgsz)),
-#     )
-#
-#     pre_transform = Compose([mosaic, affine])
-#     if hyp.copy_paste_mode == "flip":
-#         pre_transform.insert(1, CopyPaste(p=hyp.copy_paste, mode=hyp.copy_paste_mode))
-#     else:
-#         pre_transform.append(
-#             CopyPaste(
-#                 dataset,
-#                 pre_transform=Compose([Mosaic(dataset, imgsz=imgsz, p=hyp.mosaic), affine]),
-#                 p=hyp.copy_paste,
-#                 mode=hyp.copy_paste_mode,
-#             )
-#         )
-#     flip_idx = dataset.data.get("flip_idx", [])  # for keypoints augmentation
-#     if dataset.use_keypoints:
-#         kpt_shape = dataset.data.get("kpt_shape", None)
-#         if len(flip_idx) == 0 and hyp.fliplr > 0.0:
-#             hyp.fliplr = 0.0
-#             LOGGER.warning("WARNING ⚠️ No 'flip_idx' array defined in data.yaml, setting augmentation 'fliplr=0.0'")
-#         elif flip_idx and (len(flip_idx) != kpt_shape[0]):
-#             raise ValueError(f"data.yaml flip_idx={flip_idx} length must be equal to kpt_shape[0]={kpt_shape[0]}")
-#
-#     return Compose(
-#         [
-#             pre_transform,
-#             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
-#             Albumentations(p=1.0),
-#             RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
-#             RandomFlip(direction="vertical", p=hyp.flipud),
-#             RandomFlip(direction="horizontal", p=hyp.fliplr, flip_idx=flip_idx),
-#         ]
-#     )  # transforms
+
+import math
+import random
+import cv2
+import numpy as np
+import torch
+import torchvision.transforms.functional as F
+# from ultralytics.utils import LOGGER, TORCHVISION_0_10, TORCHVISION_0_11, TORCHVISION_0_13
+
+DEFAULT_MEAN = (0.0, 0.0, 0.0)
+DEFAULT_STD = (1.0, 1.0, 1.0)
+DEFAULT_CROP_FRACTION = 0.875
+
+
+def get_normalization_params(channels, mean=None, std=None):
+    """
+    根据通道数获取归一化参数
+    """
+    if mean is None:
+        if channels == 1:
+            mean = (0.0,)
+        elif channels == 3:
+            mean = (0.0, 0.0, 0.0)
+        elif channels == 4:
+            mean = (0.0, 0.0, 0.0, 0.0)
+        elif channels == 6:
+            mean = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        else:
+            mean = (0.0, 0.0, 0.0) + tuple(0.0 for _ in range(3, channels))
+    else:
+        if len(mean) != channels:
+            if len(mean) == 3 and channels != 3:
+                if channels == 1:
+                    mean = (sum(mean) / 3.0,)
+                elif channels == 4:
+                    mean = mean + (0.0,)
+                elif channels == 6:
+                    mean = mean * 2
+                else:
+                    mean = mean + tuple(0.0 for _ in range(3, channels))
+            else:
+                raise ValueError(f"Mean length {len(mean)} doesn't match image channels {channels}")
+
+    if std is None:
+        if channels == 1:
+            std = (1.0,)
+        elif channels == 3:
+            std = (1.0, 1.0, 1.0)
+        elif channels == 4:
+            std = (1.0, 1.0, 1.0, 1.0)
+        elif channels == 6:
+            std = (1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+        else:
+            std = (1.0, 1.0, 1.0) + tuple(1.0 for _ in range(3, channels))
+    else:
+        if len(std) != channels:
+            if len(std) == 3 and channels != 3:
+                if channels == 1:
+                    std = (sum(std) / 3.0,)
+                elif channels == 4:
+                    std = std + (1.0,)
+                elif channels == 6:
+                    std = std * 2
+                else:
+                    std = std + tuple(1.0 for _ in range(3, channels))
+            else:
+                raise ValueError(f"Std length {len(std)} doesn't match image channels {channels}")
+
+    return mean, std
+
+
+def multi_channel_resize(im, size, interpolation=cv2.INTER_LINEAR):
+    """
+    多通道图像resize处理
+    """
+    if len(im.shape) == 2:  # 灰度图
+        return cv2.resize(im, size, interpolation=interpolation)
+
+    channels = im.shape[2]
+
+    if channels == 1:
+        return cv2.resize(im.squeeze(), size, interpolation=interpolation)
+    elif channels == 3:
+        return cv2.resize(im, size, interpolation=interpolation)
+    elif channels == 4:
+        # RGB+IR：前3通道用彩色resize，第4通道用灰度resize
+        rgb = cv2.resize(im[:, :, :3], size, interpolation=interpolation)
+        ir = cv2.resize(im[:, :, 3], size, interpolation=interpolation)
+        if ir.ndim == 2:
+            ir = ir[:, :, np.newaxis]
+        return np.concatenate([rgb, ir], axis=2)
+    elif channels == 6:
+        # RGB+RGB：分别处理两个RGB组
+        rgb1 = cv2.resize(im[:, :, :3], size, interpolation=interpolation)
+        rgb2 = cv2.resize(im[:, :, 3:6], size, interpolation=interpolation)
+        return np.concatenate([rgb1, rgb2], axis=2)
+    else:
+        # 其他通道数：前3通道用彩色resize，其余用最近邻
+        if channels > 3:
+            rgb = cv2.resize(im[:, :, :3], size, interpolation=interpolation)
+            other_channels = []
+            for i in range(3, channels):
+                channel = cv2.resize(im[:, :, i], size, interpolation=cv2.INTER_NEAREST)
+                if channel.ndim == 2:
+                    channel = channel[:, :, np.newaxis]
+                other_channels.append(channel)
+            other = np.concatenate(other_channels, axis=2) if other_channels else np.empty((size[1], size[0], 0))
+            return np.concatenate([rgb, other], axis=2)
+        else:
+            return cv2.resize(im, size, interpolation=interpolation)
+
+
+class NumpyToTensor:
+    """
+    将numpy数组转换为tensor，支持多通道
+    """
+
+    def __init__(self, normalize=True):
+        self.normalize = normalize
+
+    def __call__(self, img):
+        if isinstance(img, np.ndarray):
+            # 转换维度从 (H, W, C) 到 (C, H, W)
+            if img.ndim == 3:
+                img = img.transpose(2, 0, 1)
+            elif img.ndim == 2:
+                img = img[np.newaxis, :, :]
+
+            tensor = torch.from_numpy(img.astype(np.uint8))
+
+            if self.normalize:
+                # 转换为float32并归一化到[0,1]
+                return tensor.float() / 255.0
+            else:
+                # 保持uint8类型，用于AutoAugment
+                return tensor
+        return img
+
+
+class UInt8ToFloat:
+    """
+    将uint8 tensor转换为float32并归一化
+    """
+
+    def __call__(self, img):
+        if isinstance(img, torch.Tensor) and img.dtype == torch.uint8:
+            return img.float() / 255.0
+        return img
+
+
+class NumpyRandomHorizontalFlip:
+    """numpy实现的随机水平翻转，确保所有通道一致"""
+
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, img):
+        if isinstance(img, np.ndarray) and random.random() < self.p:
+            return np.fliplr(img).copy()
+        return img
+
+
+class NumpyRandomVerticalFlip:
+    """numpy实现的随机垂直翻转，确保所有通道一致"""
+
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, img):
+        if isinstance(img, np.ndarray) and random.random() < self.p:
+            return np.flipud(img).copy()
+        return img
+
+
+class NumpyRandomResizedCrop:
+    """
+    支持numpy数组的RandomResizedCrop，确保所有通道几何变换一致
+    """
+
+    def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation=cv2.INTER_LINEAR):
+        self.size = size
+        self.scale = scale
+        self.ratio = ratio
+        self.interpolation = interpolation
+
+    def get_params(self, img, scale, ratio):
+        """获取裁剪参数"""
+        height, width = img.shape[:2]
+
+        area = height * width
+        for _ in range(10):
+            target_area = area * torch.empty(1).uniform_(scale[0], scale[1]).item()
+            log_ratio = torch.log(torch.tensor(ratio))
+            aspect_ratio = torch.exp(torch.empty(1).uniform_(log_ratio[0], log_ratio[1])).item()
+
+            w = int(round(math.sqrt(target_area * aspect_ratio)))
+            h = int(round(math.sqrt(target_area / aspect_ratio)))
+
+            if 0 < w <= width and 0 < h <= height:
+                i = torch.randint(0, height - h + 1, (1,)).item()
+                j = torch.randint(0, width - w + 1, (1,)).item()
+                return i, j, h, w
+
+        # Fallback to central crop
+        in_ratio = float(width) / float(height)
+        if in_ratio < min(ratio):
+            w = width
+            h = int(round(w / min(ratio)))
+        elif in_ratio > max(ratio):
+            h = height
+            w = int(round(h * max(ratio)))
+        else:
+            w = width
+            h = height
+        i = (height - h) // 2
+        j = (width - w) // 2
+        return i, j, h, w
+
+    def __call__(self, img):
+        if isinstance(img, np.ndarray):
+            i, j, h, w = self.get_params(img, self.scale, self.ratio)
+
+            # 裁剪 - 对所有通道应用相同的裁剪参数
+            if len(img.shape) == 3:
+                img_cropped = img[i:i + h, j:j + w, :]
+            else:
+                img_cropped = img[i:i + h, j:j + w]
+
+            # 调整大小 - 对所有通道应用相同的resize
+            if isinstance(self.size, int):
+                target_size = (self.size, self.size)
+            else:
+                target_size = self.size
+
+            return multi_channel_resize(img_cropped, target_size, self.interpolation)
+        return img
+
+
+class MultiChannelColorAugment:
+    """
+    多通道颜色增强
+    对每个通道分别应用颜色增强，但保持几何变换一致
+    """
+
+    def __init__(self, transform, channels=3):
+        self.transform = transform
+        self.channels = channels
+
+    def __call__(self, img):
+        if self.channels in [1, 3]:
+            # 1通道或3通道图像，直接应用增强
+            return self.transform(img)
+        else:
+            # 多通道图像，每个通道分别应用颜色增强
+            if isinstance(img, torch.Tensor):
+                augmented_channels = []
+                for i in range(self.channels):
+                    # 提取单个通道 [C, H, W] -> [1, H, W]
+                    single_channel = img[i:i + 1]
+
+                    try:
+                        # 对单个通道应用颜色增强
+                        augmented_channel = self.transform(single_channel)
+                        augmented_channels.append(augmented_channel)
+                    except Exception as e:
+                        # 如果增强失败，使用原始通道
+                        LOGGER.warning(f"Color augmentation failed for channel {i}: {e}")
+                        augmented_channels.append(single_channel)
+
+                # 重新组合所有通道 [1, H, W] * channels -> [C, H, W]
+                return torch.cat(augmented_channels, dim=0)
+            else:
+                return img
 
 
 # Classification augmentations -----------------------------------------------------------------------------------------
 def classify_transforms(
-    size=224,
-    mean=DEFAULT_MEAN,
-    std=DEFAULT_STD,
-    interpolation="BILINEAR",
-    crop_fraction: float = DEFAULT_CROP_FRACTION,
+        size=224,
+        mean=DEFAULT_MEAN,
+        std=DEFAULT_STD,
+        interpolation="BILINEAR",
+        crop_fraction: float = DEFAULT_CROP_FRACTION,
+        channels=3,
 ):
     """
     Creates a composition of image transforms for classification tasks.
-
-    This function generates a sequence of torchvision transforms suitable for preprocessing images
-    for classification models during evaluation or inference. The transforms include resizing,
-    center cropping, conversion to tensor, and normalization.
-
-    Args:
-        size (int | tuple): The target size for the transformed image. If an int, it defines the shortest edge. If a
-            tuple, it defines (height, width).
-        mean (tuple): Mean values for each RGB channel used in normalization.
-        std (tuple): Standard deviation values for each RGB channel used in normalization.
-        interpolation (str): Interpolation method of either 'NEAREST', 'BILINEAR' or 'BICUBIC'.
-        crop_fraction (float): Fraction of the image to be cropped.
-
-    Returns:
-        (torchvision.transforms.Compose): A composition of torchvision transforms.
-
-    Examples:
-        >>> transforms = classify_transforms(size=224)
-        >>> img = Image.open("path/to/image.jpg")
-        >>> transformed_img = transforms(img)
     """
-    import torchvision.transforms as T  # scope for faster 'import ultralytics'
+    import torchvision.transforms as T
+
+    # 根据通道数调整归一化参数
+    mean, std = get_normalization_params(channels, mean, std)
 
     if isinstance(size, (tuple, list)):
         assert len(size) == 2, f"'size' tuples must be length 2, not length {len(size)}"
@@ -2346,216 +2538,172 @@ def classify_transforms(
         scale_size = math.floor(size / crop_fraction)
         scale_size = (scale_size, scale_size)
 
-    # Aspect ratio is preserved, crops center within image, no borders are added, image is lost
+    # 几何变换在numpy阶段应用，确保所有通道一致
+    tfl = []
+    tfl.append(NumpyToTensor(normalize=False))
+    # Resize
     if scale_size[0] == scale_size[1]:
-        # Simple case, use torchvision built-in Resize with the shortest edge mode (scalar size arg)
-        tfl = [T.Resize(scale_size[0], interpolation=getattr(T.InterpolationMode, interpolation))]
+        tfl.append(T.Resize(scale_size[0], interpolation=getattr(T.InterpolationMode, interpolation)))
     else:
-        # Resize the shortest edge to matching target dim for non-square target
-        tfl = [T.Resize(scale_size)]
-    tfl.extend(
-        [
-            T.CenterCrop(size),
-            T.ToTensor(),
-            T.Normalize(mean=torch.tensor(mean), std=torch.tensor(std)),
-        ]
-    )
+        tfl.append(T.Resize(scale_size))
+
+    # CenterCrop
+    tfl.append(T.CenterCrop(size))
+
+    # 转换为tensor并归一化
+    tfl.append(UInt8ToFloat())
+
+    # Normalize
+    tfl.append(T.Normalize(mean=torch.tensor(mean), std=torch.tensor(std)))
+
     return T.Compose(tfl)
 
 
 # Classification training augmentations --------------------------------------------------------------------------------
 def classify_augmentations(
-    size=224,
-    mean=DEFAULT_MEAN,
-    std=DEFAULT_STD,
-    scale=None,
-    ratio=None,
-    hflip=0.5,
-    vflip=0.0,
-    auto_augment=None,
-    hsv_h=0.015,  # image HSV-Hue augmentation (fraction)
-    hsv_s=0.4,  # image HSV-Saturation augmentation (fraction)
-    hsv_v=0.4,  # image HSV-Value augmentation (fraction)
-    force_color_jitter=False,
-    erasing=0.0,
-    interpolation="BILINEAR",
+        size=224,
+        mean=DEFAULT_MEAN,
+        std=DEFAULT_STD,
+        scale=None,
+        ratio=None,
+        hflip=0.5,
+        vflip=0.0,
+        auto_augment=None,
+        hsv_h=0.015,
+        hsv_s=0.4,
+        hsv_v=0.4,
+        force_color_jitter=False,
+        erasing=0.0,
+        interpolation="BILINEAR",
+        channels=3,
 ):
     """
     Creates a composition of image augmentation transforms for classification tasks.
-
-    This function generates a set of image transformations suitable for training classification models. It includes
-    options for resizing, flipping, color jittering, auto augmentation, and random erasing.
-
-    Args:
-        size (int): Target size for the image after transformations.
-        mean (tuple): Mean values for normalization, one per channel.
-        std (tuple): Standard deviation values for normalization, one per channel.
-        scale (tuple | None): Range of size of the origin size cropped.
-        ratio (tuple | None): Range of aspect ratio of the origin aspect ratio cropped.
-        hflip (float): Probability of horizontal flip.
-        vflip (float): Probability of vertical flip.
-        auto_augment (str | None): Auto augmentation policy. Can be 'randaugment', 'augmix', 'autoaugment' or None.
-        hsv_h (float): Image HSV-Hue augmentation factor.
-        hsv_s (float): Image HSV-Saturation augmentation factor.
-        hsv_v (float): Image HSV-Value augmentation factor.
-        force_color_jitter (bool): Whether to apply color jitter even if auto augment is enabled.
-        erasing (float): Probability of random erasing.
-        interpolation (str): Interpolation method of either 'NEAREST', 'BILINEAR' or 'BICUBIC'.
-
-    Returns:
-        (torchvision.transforms.Compose): A composition of image augmentation transforms.
-
-    Examples:
-        >>> transforms = classify_augmentations(size=224, auto_augment="randaugment")
-        >>> augmented_image = transforms(original_image)
     """
-    # Transforms to apply if Albumentations not installed
-    import torchvision.transforms as T  # scope for faster 'import ultralytics'
+    import torchvision.transforms as T
+
+    # 根据通道数调整归一化参数
+    mean, std = get_normalization_params(channels, mean, std)
 
     if not isinstance(size, int):
         raise TypeError(f"classify_transforms() size {size} must be integer, not (list, tuple)")
-    scale = tuple(scale or (0.08, 1.0))  # default imagenet scale range
-    ratio = tuple(ratio or (3.0 / 4.0, 4.0 / 3.0))  # default imagenet ratio range
-    interpolation = getattr(T.InterpolationMode, interpolation)
-    primary_tfl = [T.RandomResizedCrop(size, scale=scale, ratio=ratio, interpolation=interpolation)]
+
+    scale = tuple(scale or (0.08, 1.0))
+    ratio = tuple(ratio or (3.0 / 4.0, 4.0 / 3.0))
+
+    # 几何变换在numpy阶段应用，确保所有通道一致
+    primary_tfl = [NumpyRandomResizedCrop(size, scale=scale, ratio=ratio,
+                                          interpolation=cv2.INTER_LINEAR)]
+
+    # 翻转操作在numpy阶段应用，确保所有通道一致
     if hflip > 0.0:
-        primary_tfl.append(T.RandomHorizontalFlip(p=hflip))
+        primary_tfl.append(NumpyRandomHorizontalFlip(p=hflip))
     if vflip > 0.0:
-        primary_tfl.append(T.RandomVerticalFlip(p=vflip))
+        primary_tfl.append(NumpyRandomVerticalFlip(p=vflip))
 
+    # 颜色增强在tensor阶段应用
     secondary_tfl = []
-    disable_color_jitter = False
-    if auto_augment:
+
+    # AutoAugment需要uint8类型的tensor
+    if auto_augment and channels in [1, 3]:
         assert isinstance(auto_augment, str), f"Provided argument should be string, but got type {type(auto_augment)}"
-        # color jitter is typically disabled if AA/RA on,
-        # this allows override without breaking old hparm cfgs
-        disable_color_jitter = not force_color_jitter
 
-        if auto_augment == "randaugment":
-            if TORCHVISION_0_11:
-                secondary_tfl.append(T.RandAugment(interpolation=interpolation))
-            else:
-                LOGGER.warning('"auto_augment=randaugment" requires torchvision >= 0.11.0. Disabling it.')
-
-        elif auto_augment == "augmix":
-            if TORCHVISION_0_13:
-                secondary_tfl.append(T.AugMix(interpolation=interpolation))
-            else:
-                LOGGER.warning('"auto_augment=augmix" requires torchvision >= 0.13.0. Disabling it.')
-
-        elif auto_augment == "autoaugment":
-            if TORCHVISION_0_10:
-                secondary_tfl.append(T.AutoAugment(interpolation=interpolation))
-            else:
-                LOGGER.warning('"auto_augment=autoaugment" requires torchvision >= 0.10.0. Disabling it.')
-
+        if auto_augment == "randaugment" and TORCHVISION_0_11:
+            # 先转换为uint8 tensor，应用AutoAugment，再转换回float
+            secondary_tfl.extend([
+                NumpyToTensor(normalize=False),  # 保持uint8
+                T.RandAugment(interpolation=getattr(T.InterpolationMode, interpolation)),
+                UInt8ToFloat(),  # 转换回float32并归一化
+            ])
+        elif auto_augment == "augmix" and TORCHVISION_0_13:
+            secondary_tfl.extend([
+                NumpyToTensor(normalize=False),  # 保持uint8
+                T.AugMix(interpolation=getattr(T.InterpolationMode, interpolation)),
+                UInt8ToFloat(),  # 转换回float32并归一化
+            ])
+        elif auto_augment == "autoaugment" and TORCHVISION_0_10:
+            secondary_tfl.extend([
+                NumpyToTensor(normalize=False),  # 保持uint8
+                T.AutoAugment(interpolation=getattr(T.InterpolationMode, interpolation)),
+                UInt8ToFloat(),  # 转换回float32并归一化
+            ])
         else:
-            raise ValueError(
-                f'Invalid auto_augment policy: {auto_augment}. Should be one of "randaugment", '
-                f'"augmix", "autoaugment" or None'
-            )
+            LOGGER.warning(f"AutoAugment type {auto_augment} not supported with current torchvision version.")
+    elif auto_augment and channels not in [1, 3]:
+        LOGGER.warning(f"AutoAugment is not supported for {channels}-channel images. Disabling AutoAugment.")
 
-    if not disable_color_jitter:
+    # 颜色抖动 - 在float32 tensor上应用
+    if not force_color_jitter and channels in [1, 3]:
+        # 标准处理：转换为tensor后应用颜色抖动
+        if not any(isinstance(t, NumpyToTensor) for t in secondary_tfl):
+            # 如果没有前面的AutoAugment，需要先转换为tensor
+            secondary_tfl.append(NumpyToTensor(normalize=True))
         secondary_tfl.append(T.ColorJitter(brightness=hsv_v, contrast=hsv_v, saturation=hsv_s, hue=hsv_h))
+    elif not force_color_jitter and channels not in [1, 3]:
+        # 多通道图像：每个通道分别应用颜色抖动
+        if not any(isinstance(t, NumpyToTensor) for t in secondary_tfl):
+            secondary_tfl.append(NumpyToTensor(normalize=True))
+        color_jitter = T.ColorJitter(brightness=hsv_v, contrast=hsv_v, saturation=hsv_s, hue=hsv_h)
+        secondary_tfl.append(MultiChannelColorAugment(color_jitter, channels))
 
-    final_tfl = [
-        T.ToTensor(),
-        T.Normalize(mean=torch.tensor(mean), std=torch.tensor(std)),
-        T.RandomErasing(p=erasing, inplace=True),
-    ]
+    # 如果没有应用任何颜色增强，确保转换为tensor
+    if not secondary_tfl and not any(isinstance(t, NumpyToTensor) for t in primary_tfl):
+        secondary_tfl.append(NumpyToTensor(normalize=True))
 
-    return T.Compose(primary_tfl + secondary_tfl + final_tfl)
+    # 归一化
+    secondary_tfl.append(T.Normalize(mean=torch.tensor(mean), std=torch.tensor(std)))
+
+    # 随机擦除
+    if erasing > 0.0:
+        secondary_tfl.append(T.RandomErasing(p=erasing, inplace=True))
+
+    return T.Compose(primary_tfl + secondary_tfl)
 
 
-# NOTE: keep this class for backward compatibility
 class ClassifyLetterBox:
     """
     A class for resizing and padding images for classification tasks.
-
-    This class is designed to be part of a transformation pipeline, e.g., T.Compose([LetterBox(size), ToTensor()]).
-    It resizes and pads images to a specified size while maintaining the original aspect ratio.
-
-    Attributes:
-        h (int): Target height of the image.
-        w (int): Target width of the image.
-        auto (bool): If True, automatically calculates the short side using stride.
-        stride (int): The stride value, used when 'auto' is True.
-
-    Methods:
-        __call__: Applies the letterbox transformation to an input image.
-
-    Examples:
-        >>> transform = ClassifyLetterBox(size=(640, 640), auto=False, stride=32)
-        >>> img = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-        >>> result = transform(img)
-        >>> print(result.shape)
-        (640, 640, 3)
     """
 
-    def __init__(self, size=(640, 640), auto=False, stride=32):
-        """
-        Initializes the ClassifyLetterBox object for image preprocessing.
-
-        This class is designed to be part of a transformation pipeline for image classification tasks. It resizes and
-        pads images to a specified size while maintaining the original aspect ratio.
-
-        Args:
-            size (int | Tuple[int, int]): Target size for the letterboxed image. If an int, a square image of
-                (size, size) is created. If a tuple, it should be (height, width).
-            auto (bool): If True, automatically calculates the short side based on stride. Default is False.
-            stride (int): The stride value, used when 'auto' is True. Default is 32.
-
-        Attributes:
-            h (int): Target height of the letterboxed image.
-            w (int): Target width of the letterboxed image.
-            auto (bool): Flag indicating whether to automatically calculate short side.
-            stride (int): Stride value for automatic short side calculation.
-
-        Examples:
-            >>> transform = ClassifyLetterBox(size=224)
-            >>> img = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-            >>> result = transform(img)
-            >>> print(result.shape)
-            (224, 224, 3)
-        """
+    def __init__(self, size=(640, 640), auto=False, stride=32, channels=3):
         super().__init__()
         self.h, self.w = (size, size) if isinstance(size, int) else size
-        self.auto = auto  # pass max size integer, automatically solve for short side using stride
-        self.stride = stride  # used with auto
+        self.auto = auto
+        self.stride = stride
+        self.channels = channels
 
     def __call__(self, im):
-        """
-        Resizes and pads an image using the letterbox method.
+        # 确保图像有正确的通道数
+        if len(im.shape) == 2:  # 灰度图 (H, W)
+            im = im[:, :, np.newaxis] if self.channels == 1 else cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
+        elif len(im.shape) == 3 and im.shape[2] != self.channels:
+            if self.channels == 1 and im.shape[2] == 3:
+                im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
+            elif self.channels == 3 and im.shape[2] == 1:
+                im = cv2.cvtColor(im[:, :, 0], cv2.COLOR_GRAY2RGB)
+            else:
+                raise ValueError(f"Input image channels {im.shape[2]} don't match expected channels {self.channels}")
 
-        This method resizes the input image to fit within the specified dimensions while maintaining its aspect ratio,
-        then pads the resized image to match the target size.
-
-        Args:
-            im (numpy.ndarray): Input image as a numpy array with shape (H, W, C).
-
-        Returns:
-            (numpy.ndarray): Resized and padded image as a numpy array with shape (hs, ws, 3), where hs and ws are
-                the target height and width respectively.
-
-        Examples:
-            >>> letterbox = ClassifyLetterBox(size=(640, 640))
-            >>> image = np.random.randint(0, 255, (720, 1280, 3), dtype=np.uint8)
-            >>> resized_image = letterbox(image)
-            >>> print(resized_image.shape)
-            (640, 640, 3)
-        """
         imh, imw = im.shape[:2]
-        r = min(self.h / imh, self.w / imw)  # ratio of new/old dimensions
-        h, w = round(imh * r), round(imw * r)  # resized image dimensions
+        r = min(self.h / imh, self.w / imw)
+        h, w = round(imh * r), round(imw * r)
 
-        # Calculate padding dimensions
         hs, ws = (math.ceil(x / self.stride) * self.stride for x in (h, w)) if self.auto else (self.h, self.w)
         top, left = round((hs - h) / 2 - 0.1), round((ws - w) / 2 - 0.1)
 
+        # 使用多通道resize处理
+        resized_im = multi_channel_resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
+
         # Create padded image
-        im_out = np.full((hs, ws, 3), 114, dtype=im.dtype)
-        im_out[top : top + h, left : left + w] = cv2.resize(im, (w, h), interpolation=cv2.INTER_LINEAR)
+        if self.channels == 1:
+            im_out = np.full((hs, ws), 114, dtype=im.dtype)
+            im_out[top:top + h, left:left + w] = resized_im.squeeze()
+        else:
+            im_out = np.full((hs, ws, self.channels), 114, dtype=im.dtype)
+            im_out[top:top + h, left:left + w] = resized_im
+
         return im_out
+
 
 
 # NOTE: keep this class for backward compatibility

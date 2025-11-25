@@ -410,7 +410,7 @@ def check_cls_dataset(dataset, split=""):
             - 'nc' (int): The number of classes in the dataset.
             - 'names' (dict): A dictionary of class names in the dataset.
     """
-    # Download (optional if dataset=https://file.zip is passed directly)
+    # Download (optional if dataset=https://file.zip  is passed directly)
     if str(dataset).startswith(("http:/", "https:/")):
         dataset = safe_download(dataset, dir=DATASETS_DIR, unzip=True, delete=False)
     elif Path(dataset).suffix in {".zip", ".tar", ".gz"}:
@@ -418,6 +418,7 @@ def check_cls_dataset(dataset, split=""):
         dataset = safe_download(file, dir=DATASETS_DIR, unzip=True, delete=False)
 
     dataset = Path(dataset)
+
     data_dir = (dataset if dataset.is_dir() else (DATASETS_DIR / dataset)).resolve()
     if not data_dir.is_dir():
         LOGGER.warning(f"\nDataset not found ⚠️, missing path {data_dir}, attempting download...")
@@ -429,22 +430,42 @@ def check_cls_dataset(dataset, split=""):
             download(url, dir=data_dir.parent)
         s = f"Dataset download success ✅ ({time.time() - t:.1f}s), saved to {colorstr('bold', data_dir)}\n"
         LOGGER.info(s)
-    train_set = data_dir / "train"
-    val_set = (
-        data_dir / "val"
-        if (data_dir / "val").exists()
-        else data_dir / "validation"
-        if (data_dir / "validation").exists()
-        else None
-    )  # data/test or data/val
-    test_set = data_dir / "test" if (data_dir / "test").exists() else None  # data/val or data/test
+
+    # Check if the dataset has 'visible' and 'infrared' subdirectories
+    if (data_dir / "visible").is_dir() and (data_dir / "infrared").is_dir():
+        train_set = data_dir / "visible" / "train"
+        val_set = (
+            data_dir / "visible" / "val"
+            if (data_dir / "visible" / "val").exists()
+            else data_dir / "visible" / "validation"
+            if (data_dir / "visible" / "validation").exists()
+            else None
+        )
+        test_set = data_dir / "visible" / "test" if (data_dir / "visible" / "test").exists() else None
+    else:
+        train_set = data_dir / "train"
+        val_set = (
+            data_dir / "val"
+            if (data_dir / "val").exists()
+            else data_dir / "validation"
+            if (data_dir / "validation").exists()
+            else None
+        )
+        test_set = data_dir / "test" if (data_dir / "test").exists() else None
+
     if split == "val" and not val_set:
         LOGGER.warning("WARNING ⚠️ Dataset 'split=val' not found, using 'split=test' instead.")
     elif split == "test" and not test_set:
         LOGGER.warning("WARNING ⚠️ Dataset 'split=test' not found, using 'split=val' instead.")
 
-    nc = len([x for x in (data_dir / "train").glob("*") if x.is_dir()])  # number of classes
-    names = [x.name for x in (data_dir / "train").iterdir() if x.is_dir()]  # class names list
+    # Check number of classes and class names in the 'visible' directory if it exists
+    if (data_dir / "visible").is_dir():
+        nc = len([x for x in (data_dir / "visible" / "train").glob("*") if x.is_dir()])
+        names = [x.name for x in (data_dir / "visible" / "train").iterdir() if x.is_dir()]
+    else:
+        nc = len([x for x in (data_dir / "train").glob("*") if x.is_dir()])
+        names = [x.name for x in (data_dir / "train").iterdir() if x.is_dir()]
+
     names = dict(enumerate(sorted(names)))
 
     # Print to console
@@ -467,7 +488,6 @@ def check_cls_dataset(dataset, split=""):
                 LOGGER.info(f"{prefix} found {nf} images in {nd} classes ✅ ")
 
     return {"train": train_set, "val": val_set, "test": test_set, "nc": nc, "names": names}
-
 
 class HUBDatasetStats:
     """
