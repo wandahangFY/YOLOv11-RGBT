@@ -404,9 +404,12 @@ class yolo_heatmap:
         except:
             raise FileNotFoundError(f"Image Not Found {f}")
         img = im
+        src_w,src_h=img.shape[0],img.shape[1]
 
         img, _, (top, bottom, left, right) = letterbox(img, new_shape=(self.img_size, self.img_size),
                                                        auto=True)  # 如果需要完全固定成宽高一样就把auto设置为False
+        dst_w, dst_h = img.shape[0], img.shape[1]
+
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # img = np.float32(img) / 255.0
         # tensor = torch.from_numpy(np.transpose(img, axes=[2, 0, 1])).unsqueeze(0).to(self.device)
@@ -446,7 +449,7 @@ class yolo_heatmap:
         pred = self.model_yolo.predict(img_path, conf=self.conf_threshold, iou=0.7, use_simotm=self.use_simotm,
                                        channels=self.channels)[0]
 
-        resize_results(pred, (1024, 1280), (512, 640))
+        resize_results(pred, (src_h, src_w), (dst_w, 640))
 
         print(pred.boxes)
         if self.renormalize and self.task in ['detect', 'segment', 'pose']:
