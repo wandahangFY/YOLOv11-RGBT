@@ -145,7 +145,7 @@ dmypy.json
 runs/
 wandb/
 .DS_Store
-
+result3/
 # Neural Network weights -----------------------------------------------------------------------------------------------
 weights/
 *.weights
@@ -180,3 +180,4 @@ calibration_*.npy
 #/train_RGBT_kaist.py
 /ultralytics/cfg/datasets/dota8_MINE.yaml
 /val2.py
+/heatmap_RGBT_test.py

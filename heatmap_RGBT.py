@@ -2,10 +2,12 @@
 
 import math
 import warnings
+
 warnings.filterwarnings('ignore')
 warnings.simplefilter('ignore')
 import torch, yaml, cv2, os, shutil, sys, copy
 import numpy as np
+
 np.random.seed(0)
 import matplotlib.pyplot as plt
 from tqdm import trange
@@ -14,10 +16,10 @@ from ultralytics import YOLO
 from ultralytics.nn.tasks import attempt_load_weights
 from ultralytics.utils.torch_utils import intersect_dicts
 from ultralytics.utils.ops import xywh2xyxy, non_max_suppression
-from pytorch_grad_cam import GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM, AblationCAM
+from pytorch_grad_cam import GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM, \
+    AblationCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image, scale_cam_image
 from pytorch_grad_cam.activations_and_gradients import ActivationsAndGradients
-
 
 
 # from
@@ -118,7 +120,8 @@ class ActivationsAndGradients:
             logits_ = result[:, 4:]
             boxes_ = result[:, :4]
             sorted, indices = torch.sort(logits_.max(1)[0], descending=True)
-            return torch.transpose(logits_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(boxes_[0], dim0=0, dim1=1)[indices[0]]
+            return torch.transpose(logits_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(boxes_[0], dim0=0, dim1=1)[
+                indices[0]]
         elif self.model.task == 'segment':
             logits_ = result[0][:, 4:4 + self.model.nc]
             boxes_ = result[0][:, :4]
@@ -126,22 +129,25 @@ class ActivationsAndGradients:
             c, h, w = mask_p.size()
             mask = (mask_nm @ mask_p.view(c, -1))
             sorted, indices = torch.sort(logits_.max(1)[0], descending=True)
-            return torch.transpose(logits_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(boxes_[0], dim0=0, dim1=1)[indices[0]], mask[indices[0]]
+            return torch.transpose(logits_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(boxes_[0], dim0=0, dim1=1)[
+                indices[0]], mask[indices[0]]
         elif self.model.task == 'pose':
             logits_ = result[:, 4:4 + self.model.nc]
             boxes_ = result[:, :4]
             poses_ = result[:, 4 + self.model.nc:]
             sorted, indices = torch.sort(logits_.max(1)[0], descending=True)
-            return torch.transpose(logits_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(boxes_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(poses_[0], dim0=0, dim1=1)[indices[0]]
+            return torch.transpose(logits_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(boxes_[0], dim0=0, dim1=1)[
+                indices[0]], torch.transpose(poses_[0], dim0=0, dim1=1)[indices[0]]
         elif self.model.task == 'obb':
             logits_ = result[:, 4:4 + self.model.nc]
             boxes_ = result[:, :4]
             angles_ = result[:, 4 + self.model.nc:]
             sorted, indices = torch.sort(logits_.max(1)[0], descending=True)
-            return torch.transpose(logits_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(boxes_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(angles_[0], dim0=0, dim1=1)[indices[0]]
+            return torch.transpose(logits_[0], dim0=0, dim1=1)[indices[0]], torch.transpose(boxes_[0], dim0=0, dim1=1)[
+                indices[0]], torch.transpose(angles_[0], dim0=0, dim1=1)[indices[0]]
         elif self.model.task == 'classify':
             return result[0]
-  
+
     def __call__(self, x):
         self.gradients = []
         self.activations = []
@@ -166,6 +172,7 @@ class ActivationsAndGradients:
         for handle in self.handles:
             handle.remove()
 
+
 class yolo_detect_target(torch.nn.Module):
     def __init__(self, ouput_type, conf, ratio, end2end) -> None:
         super().__init__()
@@ -173,12 +180,13 @@ class yolo_detect_target(torch.nn.Module):
         self.conf = conf
         self.ratio = ratio
         self.end2end = end2end
-    
+
     def forward(self, data):
         post_result, pre_post_boxes = data
         result = []
         for i in trange(int(post_result.size(0) * self.ratio)):
-            if (self.end2end and float(post_result[i, 0]) < self.conf) or (not self.end2end and float(post_result[i].max()) < self.conf):
+            if (self.end2end and float(post_result[i, 0]) < self.conf) or (
+                    not self.end2end and float(post_result[i].max()) < self.conf):
                 break
             if self.ouput_type == 'class' or self.ouput_type == 'all':
                 if self.end2end:
@@ -190,10 +198,11 @@ class yolo_detect_target(torch.nn.Module):
                     result.append(pre_post_boxes[i, j])
         return sum(result)
 
+
 class yolo_segment_target(yolo_detect_target):
     def __init__(self, ouput_type, conf, ratio, end2end):
         super().__init__(ouput_type, conf, ratio, end2end)
-    
+
     def forward(self, data):
         post_result, pre_post_boxes, pre_post_mask = data
         result = []
@@ -209,10 +218,11 @@ class yolo_segment_target(yolo_detect_target):
                 result.append(pre_post_mask[i].mean())
         return sum(result)
 
+
 class yolo_pose_target(yolo_detect_target):
     def __init__(self, ouput_type, conf, ratio, end2end):
         super().__init__(ouput_type, conf, ratio, end2end)
-    
+
     def forward(self, data):
         post_result, pre_post_boxes, pre_post_pose = data
         result = []
@@ -228,10 +238,11 @@ class yolo_pose_target(yolo_detect_target):
                 result.append(pre_post_pose[i].mean())
         return sum(result)
 
+
 class yolo_obb_target(yolo_detect_target):
     def __init__(self, ouput_type, conf, ratio, end2end):
         super().__init__(ouput_type, conf, ratio, end2end)
-    
+
     def forward(self, data):
         post_result, pre_post_boxes, pre_post_angle = data
         result = []
@@ -247,15 +258,18 @@ class yolo_obb_target(yolo_detect_target):
                 result.append(pre_post_angle[i])
         return sum(result)
 
+
 class yolo_classify_target(yolo_detect_target):
     def __init__(self, ouput_type, conf, ratio, end2end):
         super().__init__(ouput_type, conf, ratio, end2end)
-    
+
     def forward(self, data):
         return data.max()
 
+
 class yolo_heatmap:
-    def __init__(self, weight, device, method, layer, backward_type, conf_threshold, ratio, show_result, renormalize, task, img_size,use_simotm,channels):
+    def __init__(self, weight, device, method, layer, backward_type, conf_threshold, ratio, show_result, renormalize,
+                 task, img_size, use_simotm, channels):
         device = torch.device(device)
         model_yolo = YOLO(weight)
         model_names = model_yolo.names
@@ -271,7 +285,7 @@ class yolo_heatmap:
         model.task = task
         if not hasattr(model, 'end2end'):
             model.end2end = False
-        
+
         if task == 'detect':
             target = yolo_detect_target(backward_type, conf_threshold, ratio, model.end2end)
         elif task == 'segment':
@@ -284,32 +298,33 @@ class yolo_heatmap:
             target = yolo_classify_target(backward_type, conf_threshold, ratio, model.end2end)
         else:
             raise Exception(f"not support task({task}).")
-        
+
         target_layers = [model.model[l] for l in layer]
         method = eval(method)(model, target_layers)
         method.activations_and_grads = ActivationsAndGradients(model, target_layers, None)
-        
+
         colors = np.random.uniform(0, 255, size=(len(model_names), 3)).astype(np.int32)
         self.__dict__.update(locals())
-    
+
     def post_process(self, result):
         result = non_max_suppression(result, conf_thres=self.conf_threshold, iou_thres=0.65)[0]
         return result
 
     def draw_detections(self, box, color, name, img):
         xmin, ymin, xmax, ymax = list(map(int, list(box)))
-        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), tuple(int(x) for x in color), 2) # 绘制检测框
-        cv2.putText(img, str(name), (xmin, ymin - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, tuple(int(x) for x in color), 2, lineType=cv2.LINE_AA)  # 绘制类别、置信度
+        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), tuple(int(x) for x in color), 2)  # 绘制检测框
+        cv2.putText(img, str(name), (xmin, ymin - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, tuple(int(x) for x in color), 2,
+                    lineType=cv2.LINE_AA)  # 绘制类别、置信度
         return img
 
     def renormalize_cam_in_bounding_boxes(self, boxes, image_float_np, grayscale_cam):
-        """Normalize the CAM to be in the range [0, 1] 
+        """Normalize the CAM to be in the range [0, 1]
         inside every bounding boxes, and zero outside of the bounding boxes. """
         renormalized_cam = np.zeros(grayscale_cam.shape, dtype=np.float32)
         for x1, y1, x2, y2 in boxes:
             x1, y1 = max(x1, 0), max(y1, 0)
             x2, y2 = min(grayscale_cam.shape[1] - 1, x2), min(grayscale_cam.shape[0] - 1, y2)
-            renormalized_cam[y1:y2, x1:x2] = scale_cam_image(grayscale_cam[y1:y2, x1:x2].copy())    
+            renormalized_cam[y1:y2, x1:x2] = scale_cam_image(grayscale_cam[y1:y2, x1:x2].copy())
         renormalized_cam = scale_cam_image(renormalized_cam)
         eigencam_image_renormalized = show_cam_on_image(image_float_np, renormalized_cam, use_rgb=True)
         return eigencam_image_renormalized
@@ -412,7 +427,7 @@ class yolo_heatmap:
             img = np.concatenate((img3c, img3c2), axis=0)
         else:
             img = np.ascontiguousarray(img.transpose(2, 0, 1)[::-1])
-        img = torch.from_numpy(img)
+        # img = torch.from_numpy(img)
         img = np.float32(img) / 255.0
         tensor = torch.from_numpy(img).unsqueeze(0).to(self.device)
 
@@ -426,24 +441,32 @@ class yolo_heatmap:
 
         grayscale_cam = grayscale_cam[0, :]
         # cam_image = show_cam_on_image(img, grayscale_cam, use_rgb=True)
-        cam_image = show_cam_on_image(np.transpose(img[:3,:,:], axes=[1,2,0]), grayscale_cam, use_rgb=True)
-        pred = self.model_yolo.predict(tensor, conf=self.conf_threshold, iou=0.7,use_simotm=self.use_simotm,
-                  channels=self.channels)[0]
+        cam_image = show_cam_on_image(np.transpose(img[:3, :, :], axes=[1, 2, 0]), grayscale_cam, use_rgb=True)
+        print(f'cam_image size:{cam_image.shape}')
+        pred = self.model_yolo.predict(img_path, conf=self.conf_threshold, iou=0.7, use_simotm=self.use_simotm,
+                                       channels=self.channels)[0]
+
+        resize_results(pred, (1024, 1280), (512, 640))
+
+        print(pred.boxes)
         if self.renormalize and self.task in ['detect', 'segment', 'pose']:
-            cam_image = self.renormalize_cam_in_bounding_boxes(pred.boxes.xyxy.cpu().detach().numpy().astype(np.int32), img, grayscale_cam)
+            cam_image = self.renormalize_cam_in_bounding_boxes(pred.boxes.xyxy.cpu().detach().numpy().astype(np.int32),
+                                                               np.transpose(img[:3, :, :], axes=[1, 2, 0]),
+                                                               grayscale_cam)
         if self.show_result:
             cam_image = pred.plot(img=cam_image,
-                                  conf=True, # 显示置信度
-                                  font_size=None, # 字体大小，None为根据当前image尺寸计算
-                                  line_width=None, # 线条宽度，None为根据当前image尺寸计算
-                                  labels=False, # 显示标签
+                                  conf=True,  # 显示置信度
+                                  font_size=None,  # 字体大小，None为根据当前image尺寸计算
+                                  line_width=None,  # 线条宽度，None为根据当前image尺寸计算
+                                  labels=False,  # 显示标签
+                                  use_simotm=self.use_simotm,
                                   )
-        
+
         # 去掉padding边界
         cam_image = cam_image[top:cam_image.shape[0] - bottom, left:cam_image.shape[1] - right]
         cam_image = Image.fromarray(cam_image)
         cam_image.save(save_path)
-    
+
     def __call__(self, img_path, save_path):
         # remove dir if exist
         if os.path.exists(save_path):
@@ -456,28 +479,71 @@ class yolo_heatmap:
                 self.process(f'{img_path}/{img_path_}', f'{save_path}/{img_path_}')
         else:
             self.process(img_path, f'{save_path}/result.png')
-        
+
+
+def resize_results(results, orig_shape, target_shape):
+    """
+    将检测结果从原始尺寸缩放到目标尺寸
+
+    Args:
+        results: YOLO Results对象
+        orig_shape: (height, width) 原始图像尺寸
+        target_shape: (height, width) 目标尺寸
+    """
+    if len(results.boxes) == 0:
+        return results
+
+    # 获取框数据并克隆（避免修改原始数据）
+    boxes = results.boxes.data.clone()
+
+    # 缩放
+    orig_h, orig_w = orig_shape
+    target_h, target_w = target_shape
+
+    scale_h = target_h / orig_h
+    scale_w = target_w / orig_w
+
+    boxes[:, [0, 2]] *= scale_w
+    boxes[:, [1, 3]] *= scale_h
+
+    # 更新结果
+    results.update(boxes=boxes)
+
+    # 更新Results对象中的orig_img（如果需要）
+    if hasattr(results, 'orig_shape'):
+        results.orig_shape = target_shape
+
+    return results
+
+
 def get_params():
     params = {
-        'weight': 'LLVIP-yolo11n-RGBT-midfusion-MCF.pt', # 现在只需要指定权重即可,不需要指定cfg M3FD-yolo11n-RGBT-midfusion-MCF.pt  best.pt
+        # 'weight': 'LLVIP-yolo11n-RGBT-midfusion-MCF.pt',
+        'weight': 'best.pt',
+        # 现在只需要指定权重即可,不需要指定cfg M3FD-yolo11n-RGBT-midfusion-MCF.pt  best.pt
         'device': 'cuda:0',
-        'method': 'GradCAMPlusPlus', # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM, KPCA_CAM
-        'layer': [10, 12, 14, 16, 18],#[10, 12, 14, 16, 18],    [30, 33, 36, 39, 42]
-        'backward_type': 'all', # detect:<class, box, all> segment:<class, box, segment, all> pose:<box, keypoint, all> obb:<box, angle, all> classify:<all>
-        'conf_threshold': 0.2, # 0.2
-        'ratio': 0.02, # 0.02-0.1
-        'show_result': True, # 不需要绘制结果请设置为False
-        'renormalize': False, # 需要把热力图限制在框内请设置为True(仅对detect,segment,pose有效)
-        'task':'detect', # 任务(detect,segment,pose,obb,classify)
-        'img_size':640, # 图像尺寸
-        'channels':6,
-        'use_simotm': 'RGBRGB6C',  #  RGBRGB6C    RGB  RGBT
+        'method': 'GradCAMPlusPlus',
+        # GradCAMPlusPlus, GradCAM, XGradCAM, EigenCAM, HiResCAM, LayerCAM, RandomCAM, EigenGradCAM, KPCA_CAM
+        'layer': [10, 12, 14, 16, 18],  # [10, 12, 14, 16, 18],    [30, 33, 36, 39, 42]
+        'backward_type': 'all',
+        # detect:<class, box, all> segment:<class, box, segment, all> pose:<box, keypoint, all> obb:<box, angle, all> classify:<all>
+        'conf_threshold': 0.2,  # 0.2
+        'ratio': 0.02,  # 0.02-0.1
+        'show_result': True,  # 不需要绘制结果请设置为False
+        'renormalize': True,  # 需要把热力图限制在框内请设置为True(仅对detect,segment,pose有效)
+        'task': 'detect',  # 任务(detect,segment,pose,obb,classify)
+        'img_size': 640,  # 图像尺寸
+        # 'channels': 6,
+        # 'use_simotm': 'RGBRGB6C',  # RGBRGB6C    RGB  RGBT
+        'channels': 4,
+        'use_simotm': 'RGBT',  # RGBRGB6C    RGB  RGBT
 
     }
     return params
 
+
 # pip install grad-cam==1.5.4 --no-deps
 if __name__ == '__main__':
     model = yolo_heatmap(**get_params())
-    model(r"G:\wan\data\RGBT\test\visible", 'result2')
+    model(r"G:\wan\data\RGBT\test\visible", 'result3')
     # model(r'/home/hjj/Desktop/dataset/dataset_coco/coco/images/val2017', 'result')
